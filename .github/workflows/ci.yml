@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Stage 1: format
+      - run: pnpm format:check
+      # Stage 2: lint
+      - run: pnpm lint
+      # Stage 3: typecheck
+      - run: pnpm typecheck
+      # Stage 4: test + coverage
+      - run: pnpm test:coverage
+      # Stage 5: round-trip (added in Phase 9 Task 9.12)
+      - run: pnpm test:roundtrip

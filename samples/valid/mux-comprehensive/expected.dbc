@@ -1,0 +1,43 @@
+VERSION "mux-v1"
+
+NS_ :
+    NS_DESC_
+    CM_
+    BA_DEF_
+    BA_
+    VAL_
+    CAT_DEF_
+    CAT_
+    FILTER
+    BA_DEF_DEF_
+    EV_DATA_
+    ENVVAR_DATA_
+    SGTYPE_
+    SGTYPE_VAL_
+    BA_DEF_SGTYPE_
+    BA_SGTYPE_
+    SIG_TYPE_REF_
+    VAL_TABLE_
+    SIG_GROUP_
+    SIG_VALTYPE_
+    SIGTYPE_VALTYPE_
+    BO_TX_BU_
+    BA_DEF_REL_
+    BA_REL_
+    BA_DEF_DEF_REL_
+    BU_SG_REL_
+    BU_EV_REL_
+    BU_BO_REL_
+    SG_MUL_VAL_
+
+BS_:
+
+BU_: Gateway
+
+BO_ 512 MuxMsg: 8 Gateway
+SG_ Mux M : 0|4@1+ (1,0) [0|15] "" Gateway
+SG_ Mux0Sig m0M : 8|16@1+ (1,0) [0|65535] "rpm" Gateway
+SG_ Mux1Sig m1M : 8|16@1- (0.1,-50) [-50|50] "degC" Gateway
+SG_ ExtMuxSig M0m0 : 8|16@1+ (1,0) [0|65535] "" Gateway
+
+SG_MUL_VAL_ 512 ExtMuxSig 0 1 ;

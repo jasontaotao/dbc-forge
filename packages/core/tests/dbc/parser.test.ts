@@ -138,6 +138,30 @@ CM_ "This is a network comment";
     expect(net.comments[0]?.scope).toEqual({ kind: 'network' });
     expect(net.comments[0]?.text).toBe('This is a network comment');
   });
+
+  it('treats CM_ as single-line; non-empty line after CM_ ... ; is parsed normally', () => {
+    // Regression: parser used to set an inCm flag on CM_ that only cleared
+    // on a blank line, which made any non-empty line after `CM_ ...;` get
+    // re-routed through parseCmLine and throw "malformed CM_". DBC CM_
+    // statements are single-line, terminated by `;`.
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_: ECM
+CM_ BU_ ECM "ECM body controller";
+CM_ SG_ 256 EngineSpeed "Engine RPM signal";
+BA_DEF_  SG_  "GenSigStartValue" FLOAT -1000000 1000000;
+`);
+    expect(net.comments).toHaveLength(2);
+    expect(net.comments[0]?.scope).toEqual({ kind: 'node', nodeName: 'ECM' });
+    expect(net.comments[1]?.scope).toEqual({
+      kind: 'signal',
+      messageId: 256,
+      signalName: 'EngineSpeed',
+    });
+    expect(net.attributeDefs).toHaveLength(1);
+    expect(net.attributeDefs[0]?.name).toBe('GenSigStartValue');
+  });
 });
 
 describe('dbc parser — VAL_', () => {

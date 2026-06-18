@@ -29,7 +29,6 @@ export function parseDbc(text: string): Network {
   let inValTable = false;
   let inBo = false;
   let currentMessageId: number | null = null;
-  let inCm = false;
   let inNs = false;
   let currentValueTable: string | null = null;
 
@@ -62,14 +61,6 @@ export function parseDbc(text: string): Network {
     if (inBo && !trimmed.startsWith('SG_') && !trimmed.startsWith('CM_ SG_MUL_VAL_')) {
       inBo = false;
       currentMessageId = null;
-    }
-    if (inCm) {
-      if (trimmed === '') {
-        inCm = false;
-      } else {
-        net = parseCmLine(net, trimmed, currentMessageId);
-        continue;
-      }
     }
     if (trimmed === '') continue;
 
@@ -124,7 +115,6 @@ export function parseDbc(text: string): Network {
       continue;
     }
     if (trimmed.startsWith('CM_ ')) {
-      inCm = true;
       net = parseCmLine(net, trimmed, currentMessageId);
       continue;
     }
@@ -587,7 +577,44 @@ function parseCmLine(net: Network, line: string, currentMessageId: number | null
     scope = { kind: 'valueTable', valueTableName: a };
   else scope = { kind: 'network' };
   void currentMessageId;
-  return { ...net, comments: [...net.comments, { scope, text: decoded }] };
+  const next = { ...net, comments: [...net.comments, { scope, text: decoded }] };
+  // Mirror scope-targeted CM_ onto the corresponding object's .comment
+  // field so the Excel round-trip can carry it via the row's Comment
+  // column. Last-wins semantics match Vector CANdb++ (later CM_ overrides).
+  if (scope.kind === 'node') {
+    return {
+      ...next,
+      nodes: next.nodes.map((n) =>
+        n.name === scope.nodeName ? { ...n, comment: decoded } : n,
+      ),
+    };
+  }
+  if (scope.kind === 'message') {
+    return {
+      ...next,
+      messages: next.messages.map((m2) =>
+        m2.id === scope.messageId ? { ...m2, comment: decoded } : m2,
+      ),
+    };
+  }
+  if (scope.kind === 'signal') {
+    const msgId = scope.messageId;
+    const sigName2 = scope.signalName;
+    return {
+      ...next,
+      messages: next.messages.map((m2) =>
+        m2.id !== msgId
+          ? m2
+          : {
+              ...m2,
+              signals: m2.signals.map((s) =>
+                s.name === sigName2 ? { ...s, comment: decoded } : s,
+              ),
+            },
+      ),
+    };
+  }
+  return next;
 }
 
 function parseValLine(net: Network, line: string, lineNo: number): Network {

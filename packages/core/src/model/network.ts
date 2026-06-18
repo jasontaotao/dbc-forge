@@ -9,7 +9,7 @@ import type {
 import type { Message } from './message.js';
 import type { Node } from './node.js';
 import type { SignalGroup } from './signal-group.js';
-import type { ValueTable } from './value-table.js';
+import type { ValueTable, ValueTableEntry } from './value-table.js';
 
 // Comment location is a discriminated union so CM_ scopes (network, node,
 // message, signal, value-table, env-var) can be disambiguated by the parser
@@ -73,4 +73,19 @@ export function addMessage(
 
 export function addNode(net: Network, node: Node): Network {
   return { ...net, nodes: [...net.nodes, node] };
+}
+
+export function addValueTable(net: Network, vt: ValueTable): Network {
+  return { ...net, valueTables: [...net.valueTables, vt] };
+}
+
+export function appendValueTableEntry(net: Network, name: string, entry: ValueTableEntry): Network {
+  return {
+    ...net,
+    valueTables: net.valueTables.map((vt) =>
+      vt.name === name
+        ? { ...vt, entries: [...vt.entries, entry] }
+        : vt,
+    ),
+  };
 }

@@ -6,7 +6,8 @@
 
 import { ParseError } from '../errors.js';
 import type { Network } from '../model/network.js';
-import { addNode, createNetwork } from '../model/network.js';
+import { addNode, addValueTable, appendValueTableEntry, createNetwork } from '../model/network.js';
+import { createValueTable } from '../model/value-table.js';
 
 import { DBC_KEYWORDS } from './grammar.js';
 
@@ -18,6 +19,7 @@ export function parseDbc(text: string): Network {
   let currentMessageId: number | null = null;
   let inCm = false;
   let inNs = false;
+  let currentValueTable: string | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
@@ -25,18 +27,19 @@ export function parseDbc(text: string): Network {
     const trimmed = line.trim();
 
     if (inNs) {
-      // NS_ block: any non-empty line is a namespace identifier.
-      // Block ends at the blank line. Identifiers can look like keywords
-      // (e.g. CM_, BA_DEF_) when listed in the NS_ block, so we MUST NOT
-      // bail out on a keyword match — we only bail out on a blank line.
+      // NS_ block: identifiers can look like keywords (CM_, BA_DEF_, etc.),
+      // so we only end the block on a blank line OR a line that looks like
+      // a section-starting keyword (DBC_KEYWORDS followed by a space/colon).
       if (trimmed === '') { inNs = false; continue; }
-      continue;
+      if (looksLikeSectionStart(trimmed)) { inNs = false; }
+      else continue;
     }
     if (inValTable) {
       if (trimmed === '' || !line.trimStart().startsWith('-')) {
         inValTable = false;
+        currentValueTable = null;
       } else {
-        net = parseValTableLine(net, line);
+        net = parseValTableLine(net, currentValueTable, line, lineNo);
         continue;
       }
     }
@@ -58,7 +61,9 @@ export function parseDbc(text: string): Network {
     if (trimmed.startsWith('BU_:')) { net = parseBuLine(net, trimmed); continue; }
     if (trimmed.startsWith('VAL_TABLE_ ')) {
       inValTable = true;
-      net = parseValTableHeader(net, trimmed, lineNo);
+      const name = parseValTableHeader(net, trimmed, lineNo);
+      currentValueTable = name.name;
+      net = name.net;
       continue;
     }
     if (trimmed.startsWith('BO_ ')) {
@@ -100,6 +105,14 @@ function extractQuoted(s: string, line: number): string {
   return m[1] ?? '';
 }
 
+// Recognizes lines that look like the start of a DBC section (e.g. `BO_ 256 ...`,
+// `BU_: NodeA`, `BS_:`). NS_ namespace identifiers are bare tokens that never
+// match this pattern, so we use it to terminate the NS_ block defensively.
+function looksLikeSectionStart(trimmed: string): boolean {
+  // A keyword followed by space, colon, or end-of-line.
+  return /^(VERSION|BS_:|BU_:|BU_ |VAL_TABLE_ |BO_ |SG_ |BA_DEF_ |BA_DEF_DEF_ |BA_DEF_REL_ |BA_DEF_DEF_REL_ |BA_ |BA_REL_ |CM_ |VAL_ |SIG_GROUP_ |SIG_VALTYPE_ |BO_TX_BU_ |SG_MUL_VAL_ |EV_ |ENVVAR_DATA_ )/.test(trimmed);
+}
+
 function parseBuLine(net: Network, trimmed: string): Network {
   const names = trimmed.replace(/^BU_:/, '').trim().split(/\s+/).filter(Boolean);
   let n = net;
@@ -108,8 +121,45 @@ function parseBuLine(net: Network, trimmed: string): Network {
 }
 
 // Stubs (replaced in tasks 2.3-2.13):
-function parseValTableLine(_n: Network, _l: string): Network { return _n; }
-function parseValTableHeader(_n: Network, _l: string, _ln: number): Network { return _n; }
+function parseValTableLine(net: Network, name: string | null, line: string, lineNo: number): Network {
+  if (name == null) throw new ParseError('VAL_TABLE_ continuation without header', { line: lineNo, column: 1 });
+  // Format: `   - <raw> "<label>" <raw> "<label>" ...`
+  const stripped = line.replace(/^\s*-\s*/, '');
+  const entries = parseValEntries(stripped, lineNo);
+  let n = net;
+  for (const e of entries) n = appendValueTableEntry(n, name, e);
+  return n;
+}
+
+function parseValTableHeader(net: Network, line: string, lineNo: number): { net: Network; name: string } {
+  // Format: `VAL_TABLE_ <Name> <raw> "<label>" ... ;`
+  const m = /^VAL_TABLE_\s+(\S+)\s+(.*?)\s*;\s*$/.exec(line);
+  if (!m) throw new ParseError(`malformed VAL_TABLE_: ${line}`, { line: lineNo, column: 1 });
+  const name = m[1];
+  const rest = m[2];
+  if (name === undefined || rest === undefined) {
+    throw new ParseError(`malformed VAL_TABLE_: ${line}`, { line: lineNo, column: 1 });
+  }
+  const entries = parseValEntries(rest, lineNo);
+  const updated = addValueTable(net, createValueTable({ name, entries }));
+  return { net: updated, name };
+}
+
+function parseValEntries(s: string, lineNo: number): readonly { raw: number; name: string }[] {
+  // Tokenize into alternating <number> "<label>" pairs.
+  const entries: { raw: number; name: string }[] = [];
+  const re = /(-?\d+)\s+"([^"]*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s)) !== null) {
+    const rawStr = m[1];
+    const label = m[2];
+    if (rawStr === undefined || label === undefined) {
+      throw new ParseError(`malformed VAL entry: ${s}`, { line: lineNo, column: 1 });
+    }
+    entries.push({ raw: Number(rawStr), name: label });
+  }
+  return entries;
+}
 function parseBoLine(_n: Network, _m: RegExpExecArray, _ln: number): Network { return _n; }
 function parseSgLine(_n: Network, _id: number, _l: string, _ln: number): Network { return _n; }
 function parseBaDefLine(_n: Network, _l: string, _ln: number): Network { return _n; }

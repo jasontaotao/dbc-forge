@@ -27,4 +27,29 @@ describe('errors', () => {
     const e = new UsageError('missing -o', { hint: 'use -o <output>' });
     expect(e.hint).toContain('-o');
   });
+
+  it('IOError with cause propagates cause field', () => {
+    const cause = new Error('ENOENT');
+    const e = new IOError('cannot read', { path: '/tmp/x', cause });
+    expect(e.path).toBe('/tmp/x');
+    expect(e.cause).toBe(cause);
+  });
+
+  it('UsageError without hint has undefined hint', () => {
+    const e = new UsageError('bad flag');
+    expect(e.hint).toBeUndefined();
+  });
+
+  it('all errors are instanceof Error', () => {
+    expect(new ValidationError([])).toBeInstanceOf(Error);
+    expect(new ParseError('x', { line: 1, column: 1 })).toBeInstanceOf(Error);
+    expect(new IOError('x', { path: '/y' })).toBeInstanceOf(Error);
+    expect(new UsageError('x')).toBeInstanceOf(Error);
+  });
+
+  it('ParseError message includes line and column', () => {
+    const e = new ParseError('bad token', { line: 12, column: 4 });
+    expect(e.message).toContain('line 12');
+    expect(e.message).toContain('4');
+  });
 });

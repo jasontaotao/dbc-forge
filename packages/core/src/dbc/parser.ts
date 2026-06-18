@@ -500,15 +500,30 @@ function parseValLine(net: Network, line: string, lineNo: number): Network {
   }
   const messageId = Number(idStr);
   const entries = parseValEntries(rest, lineNo);
-  // Find or create a value table with the same name as the signal.
+  // DBC inline convention: VAL_ uses the signal name in the second slot.
+  // The "real" value table is whichever VT was declared in a prior
+  // VAL_TABLE_ block; if none exists, we create one keyed by signal name.
+  //
+  // Phase 9.5: if a previously declared VT has the same entry set as the
+  // inline ones, prefer that VT's name. This keeps xlsx ↔ dbc round-trips
+  // symmetric when the xlsx binds a signal to a logically-named VT (e.g.
+  // "GearTable") that the DBC inline form would otherwise replicate under
+  // the signal name (e.g. "Gear").
   let n = net;
-  const existing = n.valueTables.find((v) => v.name === sigName);
-  if (!existing) {
+  let vtName: string = sigName;
+  const matchByEntries = n.valueTables.find(
+    (v) =>
+      v.entries.length === entries.length &&
+      v.entries.every((e, i) => e.raw === entries[i]?.raw && e.name === entries[i]?.name),
+  );
+  if (matchByEntries) {
+    vtName = matchByEntries.name;
+  } else if (!n.valueTables.some((v) => v.name === sigName)) {
     n = addValueTable(n, createValueTable({ name: sigName, entries }));
   } else {
     for (const e of entries) n = appendValueTableEntry(n, sigName, e);
   }
-  // Bind the signal to the value table.
+  // Bind the signal to the resolved value table name.
   return {
     ...n,
     messages: n.messages.map((m2) =>
@@ -534,7 +549,7 @@ function parseValLine(net: Network, line: string, lineNo: number): Network {
                     unit: s.unit,
                     receivers: s.receivers,
                     multiplexed: s.multiplexed,
-                    valueTable: sigName,
+                    valueTable: vtName,
                     ...(s.comment !== undefined ? { comment: s.comment } : {}),
                     ...(s.valueTypeForSignal !== undefined ? { valueTypeForSignal: s.valueTypeForSignal } : {}),
                     ...(s.commentGuards !== undefined ? { commentGuards: s.commentGuards } : {}),

@@ -115,7 +115,32 @@ function readFromWorkbook(wb: Workbook): Network {
   const muxExtSheet = wb.getWorksheet(MUX_EXTENSIONS_SHEET.name);
   if (muxExtSheet) net = readMuxExtensionsSheet(muxExtSheet, net);
 
-  return net;
+  return injectImplicitAttributeDefs(net);
+}
+
+/** Phase 9.5: when the reader synthesizes a NmStationAddress attribute
+ *  assignment (from the Node Address column) but the AttributeDef sheet
+ *  doesn't declare a corresponding def, inject one. This keeps the
+ *  xlsx → Network → DBC round-trip symmetric with the DBC build path
+ *  which also auto-declares the well-known def. */
+function injectImplicitAttributeDefs(net: Network): Network {
+  const declared = new Set(net.attributeDefs.map((d) => d.name));
+  const hasNmAddr = net.attributeAssignments.some(
+    (a) => a.name === 'NmStationAddress' && a.target.kind === 'node',
+  );
+  if (!hasNmAddr || declared.has('NmStationAddress')) return net;
+  return {
+    ...net,
+    attributeDefs: [
+      ...net.attributeDefs,
+      {
+        name: 'NmStationAddress',
+        target: 'node',
+        type: { kind: 'int', min: 0, max: 255 },
+        defaultValue: 0,
+      },
+    ],
+  };
 }
 
 function readNodesSheet(ws: Worksheet, net: Network): Network {

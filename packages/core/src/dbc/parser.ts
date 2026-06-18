@@ -6,7 +6,7 @@
 
 import { ParseError } from '../errors.js';
 import type { AttributeTargetRef, AttrType } from '../model/attributes/attribute.js';
-import { NETWORK_ATTRIBUTES, WELL_KNOWN_TYPES } from '../model/attributes/well-known-attributes.js';
+import { WELL_KNOWN_TYPES } from '../model/attributes/well-known-attributes.js';
 import { createMessage } from '../model/message.js';
 import {
   addNode,
@@ -550,10 +550,6 @@ function parseBaTargetRef(
   }
   // Otherwise: bare network-level value (no target ref at all).
   return { target: { kind: 'network' }, value: coerceAttrValue(rest.trim()) };
-}
-
-function isNetworkAttribute(name: string): boolean {
-  return (NETWORK_ATTRIBUTES as readonly string[]).includes(name);
 }
 
 function coerceAttrValue(s: string): number | string {

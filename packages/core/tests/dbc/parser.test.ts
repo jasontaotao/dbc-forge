@@ -90,3 +90,110 @@ BO_ 256 M: 8 BCM
     }
   });
 });
+
+describe('dbc parser — BA_DEF_', () => {
+  it('parses BA_DEF_ for INT', () => {
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_:
+BA_DEF_  BO_  "GenMsgCycleTime" INT 0 65535;
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+`);
+    expect(net.attributeDefs).toHaveLength(1);
+    expect(net.attributeDefs[0]?.name).toBe('GenMsgCycleTime');
+    expect(net.attributeDefs[0]?.type.kind).toBe('int');
+  });
+});
+
+describe('dbc parser — BA_', () => {
+  it('parses BA_ for message attribute', () => {
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_:
+BA_DEF_  BO_  "GenMsgCycleTime" INT 0 65535;
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_ "GenMsgCycleTime" BO_ 256 100;
+`);
+    expect(net.attributeAssignments).toHaveLength(1);
+    expect(net.attributeAssignments[0]?.name).toBe('GenMsgCycleTime');
+    expect(net.attributeAssignments[0]?.target).toEqual({ kind: 'message', messageId: 256 });
+    expect(net.attributeAssignments[0]?.value).toBe(100);
+  });
+});
+
+describe('dbc parser — CM_', () => {
+  it('parses CM_ at network level', () => {
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_:
+CM_ "This is a network comment";
+`);
+    expect(net.comments).toHaveLength(1);
+    expect(net.comments[0]?.scope).toEqual({ kind: 'network' });
+    expect(net.comments[0]?.text).toBe('This is a network comment');
+  });
+});
+
+describe('dbc parser — VAL_', () => {
+  it('parses VAL_ entries to message signal value table', () => {
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_: BCM
+BO_ 256 M: 8 BCM
+ SG_ Status : 0|8@1+ (1,0) [0|2] "" BCM
+VAL_ 256 Status 0 "Off" 1 "On" 2 "Auto" ;
+`);
+    const sig = net.messages[0]?.signals[0];
+    expect(sig?.valueTable).toBeDefined();
+    const vt = net.valueTables.find((v) => v.name === sig?.valueTable);
+    expect(vt?.entries).toEqual([
+      { raw: 0, name: 'Off' }, { raw: 1, name: 'On' }, { raw: 2, name: 'Auto' },
+    ]);
+  });
+});
+
+describe('dbc parser — SIG_GROUP_', () => {
+  it('parses SIG_GROUP_', () => {
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_:
+SIG_GROUP_ 256 SG_Engine 1 2 : 1;
+`);
+    expect(net.signalGroups).toHaveLength(1);
+    expect(net.signalGroups[0]?.name).toBe('SG_Engine');
+    expect(net.signalGroups[0]?.messageId).toBe(256);
+  });
+});
+
+describe('dbc parser — SIG_VALTYPE_', () => {
+  it('parses SIG_VALTYPE_', () => {
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_: BCM
+BO_ 256 M: 8 BCM
+ SG_ Rsv : 0|8@1+ (1,0) [0|255] "" BCM
+SIG_VALTYPE_ 256 Rsv : 1;
+`);
+    const sig = net.messages[0]?.signals[0];
+    expect(sig?.valueTypeForSignal).toBe('Reserved');
+  });
+});
+
+describe('dbc parser — BO_TX_BU_', () => {
+  it('parses BO_TX_BU_', () => {
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_: ECM BCM
+BO_ 256 M: 8 ECM
+BO_TX_BU_ 256 : BCM,Gateway;
+`);
+    expect(net.messages[0]?.additionalTransmitters).toEqual(['BCM', 'Gateway']);
+  });
+});

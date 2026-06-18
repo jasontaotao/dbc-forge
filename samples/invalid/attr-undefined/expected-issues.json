@@ -1,0 +1,11 @@
+[
+  {
+    "rule": "signal.factor-nonzero",
+    "severity": "error",
+    "location": {
+      "messageId": 256,
+      "signalName": "ZeroFactor"
+    },
+    "message": "信号 \"ZeroFactor\" 的 factor 必须非 0（当前 0）"
+  }
+]

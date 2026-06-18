@@ -1,0 +1,11 @@
+[
+  {
+    "rule": "signal.overlap",
+    "severity": "error",
+    "location": {
+      "messageId": 256,
+      "signalName": "S1"
+    },
+    "message": "信号 \"S1\" 与 \"S2\" 在消息 0x100 的 mux bucket \"plain\" 中位区间重叠"
+  }
+]

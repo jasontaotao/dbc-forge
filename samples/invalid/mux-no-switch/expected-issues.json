@@ -1,0 +1,10 @@
+[
+  {
+    "rule": "mux.switch-required-when-mux",
+    "severity": "error",
+    "location": {
+      "messageId": 256
+    },
+    "message": "消息 0x100 包含 Muxed 信号但 Multiplexor 数量为 0 (应为 1)"
+  }
+]

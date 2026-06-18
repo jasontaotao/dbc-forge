@@ -1,0 +1,11 @@
+[
+  {
+    "rule": "signal.name-format",
+    "severity": "error",
+    "location": {
+      "messageId": 256,
+      "signalName": "123-bad-name"
+    },
+    "message": "信号名 \"123-bad-name\" 不符合格式 (^[A-Za-z_][A-Za-z0-9_]*$, 1-32 chars)"
+  }
+]

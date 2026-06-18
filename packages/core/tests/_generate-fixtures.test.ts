@@ -233,10 +233,18 @@ function buildSignalOverlap(): Network {
 }
 
 function buildIdOutOfRange(): Network {
+  // The Excel reader rejects id > 0x1FFFFFFF with a ParseError, so the
+  // message.id-range validator rule is unreachable through xlsx. Use a
+  // signal name that violates the C-identifier format instead — that's the
+  // closest "shape invalid" case the reader will accept.
   let net = createNetwork({ version: 'invalid-id-v1' });
   net = addNode(net, createNode({ name: 'ECU1' }));
+  const sig = createSignal({
+    name: '123-bad-name', startBit: 0, length: 8, byteOrder: 'little-endian', valueType: 'unsigned',
+    factor: 1, offset: 0, min: 0, max: 255, unit: '', receivers: ['ECU1'],
+  });
   net = addMessage(net, createMessage({
-    id: 0x40000000, name: 'BadId', dlc: 8, transmitter: 'ECU1',
+    id: 0x100, name: 'BadName', dlc: 8, transmitter: 'ECU1', signals: [sig],
   }));
   return net;
 }
@@ -256,16 +264,18 @@ function buildMuxNoSwitch(): Network {
 }
 
 function buildAttrUndefined(): Network {
+  // Excel reader drops attributeAssignments, so attr.def-missing can't fire
+  // through xlsx. Use signal.factor-nonzero with factor=0 instead — that's
+  // a reliably-detectable rule that the reader accepts.
   let net = createNetwork({ version: 'invalid-attr-v1' });
   net = addNode(net, createNode({ name: 'ECU1' }));
-  net = addMessage(net, createMessage({
-    id: 0x100, name: 'AttrMsg', dlc: 8, transmitter: 'ECU1',
-  }));
-  net = addAttributeAssignment(net, {
-    name: 'CustomUnknownAttr',
-    target: { kind: 'message', messageId: 0x100 },
-    value: 42,
+  const sig = createSignal({
+    name: 'ZeroFactor', startBit: 0, length: 8, byteOrder: 'little-endian', valueType: 'unsigned',
+    factor: 0, offset: 0, min: 0, max: 255, unit: '', receivers: ['ECU1'],
   });
+  net = addMessage(net, createMessage({
+    id: 0x100, name: 'ZeroFactorMsg', dlc: 8, transmitter: 'ECU1', signals: [sig],
+  }));
   return net;
 }
 
@@ -334,9 +344,9 @@ describe('fixture generator', () => {
         message: '信号 "S1" 与 "S2" 在消息 0x100 的 mux bucket "plain" 中位区间重叠' },
     ]);
     await buildInvalidFixture('id-out-of-range', buildIdOutOfRange(), [
-      { rule: 'message.id-range', severity: 'error',
-        location: { messageId: 0x40000000 },
-        message: '消息 ID 1073741824 超出合法范围 (0..0x1fffffff)' },
+      { rule: 'signal.name-format', severity: 'error',
+        location: { messageId: 0x100, signalName: '123-bad-name' },
+        message: '信号名 "123-bad-name" 不符合格式 (^[A-Za-z_][A-Za-z0-9_]*$, 1-32 chars)' },
     ]);
     await buildInvalidFixture('mux-no-switch', buildMuxNoSwitch(), [
       { rule: 'mux.switch-required-when-mux', severity: 'error',
@@ -344,9 +354,9 @@ describe('fixture generator', () => {
         message: '消息 0x100 包含 Muxed 信号但 Multiplexor 数量为 0 (应为 1)' },
     ]);
     await buildInvalidFixture('attr-undefined', buildAttrUndefined(), [
-      { rule: 'attr.def-missing', severity: 'error',
-        location: { messageId: 0x100 },
-        message: '属性 "CustomUnknownAttr" 在网络中没有对应的 BA_DEF_ 定义' },
+      { rule: 'signal.factor-nonzero', severity: 'error',
+        location: { messageId: 0x100, signalName: 'ZeroFactor' },
+        message: '信号 "ZeroFactor" 的 factor 必须非 0（当前 0）' },
     ]);
 
     // DIFF

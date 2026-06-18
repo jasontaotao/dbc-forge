@@ -79,6 +79,13 @@ export function addValueTable(net: Network, vt: ValueTable): Network {
   return { ...net, valueTables: [...net.valueTables, vt] };
 }
 
+export function addAttributeAssignment(
+  net: Network,
+  a: AttributeAssignment,
+): Network {
+  return { ...net, attributeAssignments: [...net.attributeAssignments, a] };
+}
+
 export function appendValueTableEntry(net: Network, name: string, entry: ValueTableEntry): Network {
   return {
     ...net,

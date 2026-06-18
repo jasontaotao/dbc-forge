@@ -173,3 +173,80 @@ describe('excel reader — Signals sheet', () => {
     expect(sigs[1]?.multiplexed).toEqual({ kind: 'ExtendedMuxed', value: 3 });
   });
 });
+
+describe('excel reader — Value Tables', () => {
+  it('reads ValueTable + ValueTableEntry sheets', async () => {
+    const buf = await buildBuffer({
+      ValueTable: [
+        ['Value Table Name', 'Comment'],
+        ['OffOn', 'Simple on/off'],
+      ],
+      ValueTableEntry: [
+        ['Value Table Name', 'Raw Value', 'Value Name'],
+        ['OffOn', '0', 'Off'],
+        ['OffOn', '1', 'On'],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.valueTables).toHaveLength(1);
+    expect(net.valueTables[0]?.name).toBe('OffOn');
+    expect(net.valueTables[0]?.entries).toEqual([
+      { raw: 0, name: 'Off' },
+      { raw: 1, name: 'On' },
+    ]);
+  });
+
+  it('creates empty ValueTable when entries sheet missing', async () => {
+    const buf = await buildBuffer({
+      ValueTable: [
+        ['Value Table Name', 'Comment'],
+        ['Lone'],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.valueTables).toHaveLength(1);
+    expect(net.valueTables[0]?.entries).toEqual([]);
+  });
+});
+
+describe('excel reader — attribute columns', () => {
+  it('wires Cycle Time and Send Type into attributeAssignments', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Message: [
+        [
+          'Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter',
+          'Cycle Time [ms]', 'Send Type',
+        ],
+        ['M', '0x100', '8', 'ECM', '100', 'Cyclic'],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.attributeAssignments).toHaveLength(2);
+    expect(net.attributeAssignments[0]).toEqual({
+      name: 'GenMsgCycleTime',
+      target: { kind: 'message', messageId: 0x100 },
+      value: 100,
+    });
+    expect(net.attributeAssignments[1]).toEqual({
+      name: 'GenMsgSendType',
+      target: { kind: 'message', messageId: 0x100 },
+      value: 'Cyclic',
+    });
+  });
+
+  it('does not create assignments when attribute columns are blank', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Message: [
+        [
+          'Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter',
+          'Cycle Time [ms]', 'Send Type',
+        ],
+        ['M', '0x100', '8', 'ECM', '', ''],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.attributeAssignments).toHaveLength(0);
+  });
+});

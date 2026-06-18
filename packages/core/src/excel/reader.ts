@@ -11,8 +11,10 @@ import { Workbook, type Worksheet } from 'exceljs';
 import { IOError, ParseError } from '../errors.js';
 import { createMessage } from '../model/message.js';
 import {
+  addAttributeAssignment,
   addMessage,
   addNode,
+  addValueTable,
   createNetwork,
   type Network,
 } from '../model/network.js';
@@ -23,6 +25,7 @@ import {
   type Signal,
   type ValueType,
 } from '../model/signal.js';
+import { createValueTable, type ValueTableEntry } from '../model/value-table.js';
 
 import {
   NODES_SHEET,
@@ -71,13 +74,17 @@ function readFromWorkbook(wb: Workbook): Network {
   const nodeSheet = wb.getWorksheet(NODES_SHEET.name);
   if (nodeSheet) net = readNodesSheet(nodeSheet, net);
 
+  const vtSheet = wb.getWorksheet(VALUE_TABLES_SHEET.name);
+  if (vtSheet) net = readValueTablesSheet(vtSheet, net);
+
+  const vteSheet = wb.getWorksheet(VALUE_TABLE_ENTRIES_SHEET.name);
+  if (vteSheet) net = readValueTableEntriesSheet(vteSheet, net);
+
   const msgSheet = wb.getWorksheet(MESSAGES_SHEET.name);
   if (msgSheet) net = readMessagesSheet(msgSheet, net);
 
   const sigSheet = wb.getWorksheet(SIGNALS_SHEET.name);
   if (sigSheet) net = readSignalsSheet(sigSheet, net);
-
-  // Tasks 4.6-4.7 will add ValueTables and ValueTableEntries readers here.
 
   return net;
 }
@@ -140,8 +147,81 @@ function readMessagesSheet(ws: Worksheet, net: Network): Network {
       transmitter,
       ...(comment ? { comment } : {}),
     });
+
+    // Wire attribute columns into AttributeAssignment entries.
+    next = wireMessageAttributes(next, id, row);
   }
   return next;
+}
+
+function wireMessageAttributes(
+  net: Network,
+  messageId: number,
+  row: Record<string, unknown>,
+): Network {
+  let next = net;
+  const target = { kind: 'message' as const, messageId };
+  const numberKeys: ReadonlyArray<readonly [string, string]> = [
+    ['cycleTime', 'GenMsgCycleTime'],
+    ['startDelayTime', 'GenMsgStartDelayTime'],
+    ['delayTime', 'GenMsgDelayTime'],
+    ['nrOfRepetitions', 'GenMsgNrOfRepetitions'],
+  ];
+  for (const [field, attrName] of numberKeys) {
+    const cell = row[field];
+    if (cell === undefined || cell === null || cell === '') continue;
+    const v = Number(cell);
+    if (Number.isNaN(v)) continue;
+    next = addAttributeAssignment(next, { name: attrName, target, value: v });
+  }
+  const stringKeys: ReadonlyArray<readonly [string, string]> = [
+    ['sendType', 'GenMsgSendType'],
+    ['vFrameFormat', 'VFrameFormat'],
+  ];
+  for (const [field, attrName] of stringKeys) {
+    const cell = row[field];
+    if (cell === undefined || cell === null || cell === '') continue;
+    next = addAttributeAssignment(next, {
+      name: attrName,
+      target,
+      value: String(cell),
+    });
+  }
+  return next;
+}
+
+function readValueTablesSheet(ws: Worksheet, net: Network): Network {
+  const rows = readSheetRows(ws, VALUE_TABLES_SHEET);
+  let next = net;
+  for (const r of rows) {
+    const name = String(r['name'] ?? '').trim();
+    if (!name) continue;
+    next = addValueTable(next, createValueTable({ name, entries: [] }));
+  }
+  return next;
+}
+
+function readValueTableEntriesSheet(ws: Worksheet, net: Network): Network {
+  const rows = readSheetRows(ws, VALUE_TABLE_ENTRIES_SHEET);
+  const byVT = new Map<string, ValueTableEntry[]>();
+  for (const r of rows) {
+    const vtName = String(r['valueTableName'] ?? '').trim();
+    if (!vtName) continue;
+    const entry: ValueTableEntry = {
+      raw: Number(r['raw']),
+      name: String(r['name'] ?? '').trim(),
+    };
+    const list = byVT.get(vtName);
+    if (list) list.push(entry);
+    else byVT.set(vtName, [entry]);
+  }
+  if (byVT.size === 0) return net;
+  const newVTs = net.valueTables.map((vt) => {
+    const entries = byVT.get(vt.name);
+    if (!entries) return vt;
+    return createValueTable({ name: vt.name, entries });
+  });
+  return { ...net, valueTables: newVTs };
 }
 
 function readSignalsSheet(ws: Worksheet, net: Network): Network {

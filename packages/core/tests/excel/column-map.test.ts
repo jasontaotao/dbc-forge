@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { NODES_SHEET, MESSAGES_SHEET, SIGNALS_SHEET, VALUE_TABLES_SHEET, VALUE_TABLE_ENTRIES_SHEET, getColumnIndex } from '../../src/excel/column-map.js';
 
 describe('column-map', () => {

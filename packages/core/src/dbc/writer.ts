@@ -4,7 +4,10 @@
 // changes shape. All sections are joined with a blank line and a trailing
 // newline is appended for tool friendliness.
 
+import type { Message } from '../model/message.js';
 import type { Network } from '../model/network.js';
+import type { Signal } from '../model/signal.js';
+import type { ValueTable } from '../model/value-table.js';
 
 export type WriteMode = 'build' | 'extract';
 
@@ -17,6 +20,7 @@ export interface WriteOptions {
 
 export function writeDbc(net: Network, opts: WriteOptions = {}): string {
   const mode = opts.mode ?? 'extract';
+  void mode; // mode is used by emitBaDef in commit 3
   const sections: string[] = [];
 
   // VERSION (always first)
@@ -33,8 +37,27 @@ export function writeDbc(net: Network, opts: WriteOptions = {}): string {
   // BU_ (node list)
   sections.push(emitBu(net));
 
-  // Phase 3 commits 2-3 append more section emitters here. The slot
-  // ordering matches the parser's DBC_EMIT_ORDER.
+  // VAL_TABLE_ section
+  const valTables = emitValTables(net);
+  if (valTables) sections.push(valTables);
+
+  // BO_ (messages) + SG_ (signals) block.
+  const messages = emitMessages(net);
+  if (messages) sections.push(messages);
+
+  // BO_TX_BU_ (additional transmitters)
+  const boTxBu = emitBoTxBu(net);
+  if (boTxBu) sections.push(boTxBu);
+
+  // SIG_VALTYPE_ (signal data type qualifier)
+  const sigValtype = emitSigValtype(net);
+  if (sigValtype) sections.push(sigValtype);
+
+  // SG_MUL_VAL_ (extended mux value lists)
+  const sgMulVal = emitSgMulVal(net);
+  if (sgMulVal) sections.push(sgMulVal);
+
+  // Phase 3 commit 3 appends VAL_ + attributes + CM_ here.
 
   return sections.filter((s) => s.length > 0).join('\n\n') + '\n';
 }
@@ -78,4 +101,95 @@ function emitNsDesc(): string {
 function emitBu(net: Network): string {
   if (net.nodes.length === 0) return 'BU_:';
   return 'BU_: ' + net.nodes.map((n) => n.name).join(' ');
+}
+
+function emitValTables(net: Network): string {
+  if (net.valueTables.length === 0) return '';
+  return net.valueTables.map((vt) => emitValTable(vt)).join('\n');
+}
+
+function emitValTable(vt: ValueTable): string {
+  const entries = vt.entries.map((e) => ` ${e.raw} "${escapeQuotes(e.name)}"`).join('');
+  return `VAL_TABLE_ ${vt.name}${entries} ;`;
+}
+
+function emitMessages(net: Network): string {
+  if (net.messages.length === 0) return '';
+  return net.messages.map((m) => emitMessage(m)).join('\n\n');
+}
+
+function emitMessage(m: Message): string {
+  const header = `BO_ ${m.id} ${m.name}: ${m.dlc} ${m.transmitter}`;
+  if (m.signals.length === 0) return header;
+  const sigs = m.signals.map((s) => emitSignal(s)).join('\n');
+  return `${header}\n${sigs}`;
+}
+
+function emitSignal(s: Signal): string {
+  // Multiplex prefix: M | m<v> | M<v>m<v> | <empty>
+  let prefix = `SG_ ${s.name}`;
+  if (s.multiplexed.kind === 'Multiplexor') {
+    prefix += ' M';
+  } else if (s.multiplexed.kind === 'Muxed') {
+    prefix += ` m${s.multiplexed.value}M`;
+  } else if (s.multiplexed.kind === 'ExtendedMuxed') {
+    // Vector format: M<v>m<v> — the M is uppercase when MUXOR, then the
+    // extension value comes after with lowercase m. We follow the parser's
+    // emission convention (uppercase first M, lowercase m with the value).
+    prefix += ` M${s.multiplexed.value}m${s.multiplexed.value}`;
+  }
+
+  // @<order><sign>: 1 = little-endian (Intel), 0 = big-endian (Motorola)
+  // valueType: + = unsigned, - = signed. (float/double use IEEE 754 in the
+  // spec but we keep the same sign convention.)
+  const order = s.byteOrder === 'little-endian' ? '1' : '0';
+  const sign = s.valueType === 'signed' ? '-' : '+';
+
+  const body = ` ${s.startBit}|${s.length}@${order}${sign} (${formatNumber(s.factor)},${formatNumber(s.offset)}) [${formatNumber(s.min)}|${formatNumber(s.max)}] "${escapeQuotes(s.unit)}" ${s.receivers.join(',')}`;
+  return `${prefix} :${body}`;
+}
+
+function emitBoTxBu(net: Network): string {
+  const lines: string[] = [];
+  for (const m of net.messages) {
+    if (m.additionalTransmitters.length > 0) {
+      lines.push(`BO_TX_BU_ ${m.id} : ${m.additionalTransmitters.join(',')};`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function emitSigValtype(net: Network): string {
+  const lines: string[] = [];
+  for (const m of net.messages) {
+    for (const s of m.signals) {
+      if (s.valueTypeForSignal === 'Reserved') {
+        lines.push(`SIG_VALTYPE_ ${m.id} ${s.name} : 1;`);
+      }
+    }
+  }
+  return lines.join('\n');
+}
+
+function emitSgMulVal(net: Network): string {
+  const lines: string[] = [];
+  for (const m of net.messages) {
+    if (m.muxExtensions) {
+      for (const [sigName, values] of m.muxExtensions) {
+        lines.push(`SG_MUL_VAL_ ${m.id} ${sigName} ${values.join(' ')} ;`);
+      }
+    }
+  }
+  return lines.join('\n');
+}
+
+// Format a number for DBC output: integers stay as integers; floats use
+// the shortest representation that round-trips through Number.toString.
+function formatNumber(n: number): string {
+  if (Number.isInteger(n)) return n.toString();
+  return n.toString();
+}
+
+function escapeQuotes(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

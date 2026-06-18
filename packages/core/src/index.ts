@@ -51,3 +51,7 @@ export { writeExcel } from './excel/writer.js';
 // Validator orchestrator (Phase 6)
 export { validate } from './validate/validator.js';
 export type { ValidationMode, ValidationResult } from './validate/validator.js';
+
+// Diff module (Phase 7)
+export { diff, renderDiff } from './diff/index.js';
+export type { DiffReport, DiffChange, FieldDiff } from './diff/index.js';

@@ -1,0 +1,20 @@
+{
+  "name": "@dbc-forge/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": { "dbc-forge": "./dist/main.js" },
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dbc-forge/core": "workspace:*",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "execa": "^9.5.1"
+  }
+}

@@ -197,3 +197,80 @@ BO_TX_BU_ 256 : BCM,Gateway;
     expect(net.messages[0]?.additionalTransmitters).toEqual(['BCM', 'Gateway']);
   });
 });
+
+describe('dbc parser — full DBC integration', () => {
+  it('parses a full Vector-like DBC', () => {
+    const dbc = `VERSION "1.0"
+NS_ :
+    NS_DESC_
+    CM_
+    BA_DEF_
+    BA_
+    VAL_
+    CAT_DEF_
+    CAT_
+    FILTER
+    BA_DEF_DEF_
+    EV_DATA_
+    ENVVAR_DATA_
+    SGTYPE_
+    SGTYPE_VAL_
+    BA_DEF_SGTYPE_
+    BA_SGTYPE_
+    SIG_TYPE_REF_
+    VAL_TABLE_
+    SIG_GROUP_
+    SIG_VALTYPE_
+    SIGTYPE_VALTYPE_
+    BO_TX_BU_
+    BA_DEF_REL_
+    BA_REL_
+    BA_DEF_DEF_REL_
+    BU_SG_REL_
+    BU_EV_REL_
+    BU_BO_REL_
+    SG_MUL_VAL_
+
+BS_:
+
+BU_: ECM BCM Gateway
+
+BO_ 256 EngineStatus: 8 ECM
+ SG_ Mux M : 0|8@1+ (1,0) [0|255] "" BCM
+ SG_ EngineSpeed m0M : 8|16@1+ (0.1,0) [0|6553.5] "rpm" BCM
+ SG_ EngineTemp m1M : 24|8@1+ (1,-40) [-40|215] "degC" BCM
+
+BO_ 257 GW_Status: 8 Gateway
+ SG_ GW_Alive : 0|8@1+ (1,0) [0|255] "" BCM
+
+CM_ "Network comment";
+CM_ BU_ ECM "ECM body controller";
+CM_ BO_ 256 "Engine status msg";
+CM_ SG_ 256 EngineSpeed "Engine RPM signal";
+
+BA_DEF_  BO_  "GenMsgCycleTime" INT 0 65535;
+BA_DEF_  BU_  "NmStationAddress" INT 0 255;
+BA_DEF_  SG_  "GenSigStartValue" FLOAT -1000000 1000000;
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_ "GenMsgCycleTime" BO_ 256 100;
+BA_ "NmStationAddress" BU_ ECM 16;
+BA_ "GenSigStartValue" SG_ 256 EngineSpeed 0;
+
+SIG_GROUP_ 256 SG_Engine 1 2 : 1;
+SG_MUL_VAL_ 256 EngineSpeed 0 ;
+SG_MUL_VAL_ 256 EngineTemp 1 ;
+BO_TX_BU_ 256 : BCM;
+`;
+    const net = parseDbc(dbc);
+    expect(net.messages).toHaveLength(2);
+    expect(net.messages[0]?.signals).toHaveLength(3);
+    expect(net.messages[0]?.signals[0]?.multiplexed.kind).toBe('Multiplexor');
+    expect(net.messages[0]?.signals[1]?.multiplexed.kind).toBe('Muxed');
+    expect(net.messages[0]?.additionalTransmitters).toEqual(['BCM']);
+    expect(net.signalGroups).toHaveLength(1);
+    expect(net.comments.length).toBeGreaterThanOrEqual(4);
+    expect(net.attributeAssignments).toHaveLength(3);
+  });
+});

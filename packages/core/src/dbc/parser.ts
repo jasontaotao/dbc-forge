@@ -95,8 +95,10 @@ export function parseDbc(text: string): Network {
     if (trimmed.startsWith('SIG_VALTYPE_ ')) { net = parseSigValtypeLine(net, trimmed, lineNo); continue; }
     if (trimmed.startsWith('BO_TX_BU_ ')) { net = parseBoTxBuLine(net, trimmed, lineNo); continue; }
     if (trimmed.startsWith('SG_MUL_VAL_ ')) {
-      if (currentMessageId == null) throw new ParseError('SG_MUL_VAL_ without BO_', { line: lineNo, column: 1 });
-      net = parseSgMulValLine(net, currentMessageId, trimmed, lineNo);
+      // SG_MUL_VAL_ may appear after the BO_ block has closed (e.g. after
+      // CM_/BA_/SIG_GROUP_ in the same DBC). The id in the line is the
+      // source of truth; we just use currentMessageId as a hint for ordering.
+      net = parseSgMulValLine(net, currentMessageId ?? 0, trimmed, lineNo);
       continue;
     }
     if (trimmed.startsWith('BA_DEF_REL_ ')) { net = parseBaDefRelLine(net, trimmed, lineNo); continue; }
@@ -208,7 +210,7 @@ function parseSgLine(net: Network, messageId: number, line: string, lineNo: numb
   // Format: `SG_ <Name> [M|m<v>|M<v>m<v>] : <start>|<length>@<order><sign> (<factor>,<offset>) [<min>|<max>] "<unit>" <receivers>`
   // The leading whitespace is allowed; we work on the trimmed form.
   const trimmed = line.trim();
-  const m = /^SG_\s+(\S+)(?:\s+(M|m\d+|M\d+m\d+))?\s*:\s*(\d+)\|(\d+)@([01])([+-])\s*\(\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*\)\s*\[\s*([-+0-9.eE]+)\s*\|\s*([-+0-9.eE]+)\s*\]\s*"([^"]*)"\s*(.*)$/.exec(trimmed);
+  const m = /^SG_\s+(\S+)(?:\s+(M|m\d+M?|M\d+m\d+))?\s*:\s*(\d+)\|(\d+)@([01])([+-])\s*\(\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*\)\s*\[\s*([-+0-9.eE]+)\s*\|\s*([-+0-9.eE]+)\s*\]\s*"([^"]*)"\s*(.*)$/.exec(trimmed);
   if (!m) throw new ParseError(`malformed SG_: ${trimmed}`, { line: lineNo, column: 1 });
   const name = m[1];
   const muxStr = m[2];
@@ -250,12 +252,10 @@ function parseSgLine(net: Network, messageId: number, line: string, lineNo: numb
 function parseMuxSpecifier(s: string | undefined): Multiplexed {
   if (s === undefined) return { kind: 'Plain' };
   if (s === 'M') return { kind: 'Multiplexor' };
-  const mExtMuxed = /^M(\d+)m(\d+)$/.exec(s);
-  if (mExtMuxed) {
-    const v = mExtMuxed[1];
-    if (v !== undefined) return { kind: 'Multiplexor' };
-  }
-  const mMuxed = /^m(\d+)$/.exec(s);
+  // Vector form: `m<value>M` = Muxed with the given value (the trailing M is
+  // a historical artifact of the CANdb++ editor). The "ExtendedMuxed" form
+  // is `M<value>m<value>` (uppercase M first, then lowercase m).
+  const mMuxed = /^m(\d+)M?$/.exec(s);
   if (mMuxed) {
     const v = mMuxed[1];
     if (v !== undefined) return { kind: 'Muxed', value: Number(v) };

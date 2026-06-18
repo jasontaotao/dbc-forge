@@ -47,3 +47,7 @@ export { parseExcelAsync, parseExcel } from './excel/reader.js';
 
 // Excel writer (async; mirrors the reader's parseExcelAsync API).
 export { writeExcel } from './excel/writer.js';
+
+// Validator orchestrator (Phase 6)
+export { validate } from './validate/validator.js';
+export type { ValidationMode, ValidationResult } from './validate/validator.js';

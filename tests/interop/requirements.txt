@@ -1,0 +1,14 @@
+# cantools interop test dependencies (Phase 9.5 Task 9.5.5)
+#
+# This is a separate dependency list from the Node-side project because the
+# interop test is a Python script and is excluded from the default pnpm ci
+# gate. To execute the interop check locally:
+#
+#     python -m venv .venv
+#     source .venv/bin/activate
+#     pip install -r tests/interop/requirements.txt
+#     python tests/interop/test_with_cantools.py
+#
+# Pinned to the latest 39.x major. The library has a stable API and the
+# tests only use the public `load_file` / `as_dbc_string` surface.
+cantools>=39.0.0,<40.0.0

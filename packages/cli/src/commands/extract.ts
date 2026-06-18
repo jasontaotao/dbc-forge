@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import iconv from 'iconv-lite';
+import * as iconv from 'iconv-lite';
 
 import { parseDbc, writeExcel, validate, IOError } from '@dbc-forge/core';
 import { Command } from 'commander';

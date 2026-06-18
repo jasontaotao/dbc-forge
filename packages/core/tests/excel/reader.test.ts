@@ -501,7 +501,10 @@ describe('excel reader — 29-bit IDs + malformed xlsx', () => {
     // 0xC0000000, J1939 extended) impossible to round-trip. The bound is
     // now enforced by `validate/rules/message-id-range` instead.
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
         ['J1939Msg', '0xC0000000', '8', 'ECM'],

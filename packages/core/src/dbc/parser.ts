@@ -584,9 +584,7 @@ function parseCmLine(net: Network, line: string, currentMessageId: number | null
   if (scope.kind === 'node') {
     return {
       ...next,
-      nodes: next.nodes.map((n) =>
-        n.name === scope.nodeName ? { ...n, comment: decoded } : n,
-      ),
+      nodes: next.nodes.map((n) => (n.name === scope.nodeName ? { ...n, comment: decoded } : n)),
     };
   }
   if (scope.kind === 'message') {

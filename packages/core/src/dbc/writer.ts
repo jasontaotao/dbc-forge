@@ -400,14 +400,12 @@ function emitCm(net: Network): string {
     lines.push(`CM_ ${targetPart}"${escapeQuotes(text)}";`);
   };
   for (const c of net.comments) push(c.scope, c.text);
-  for (const n of net.nodes)
-    if (n.comment) push({ kind: 'node', nodeName: n.name }, n.comment);
+  for (const n of net.nodes) if (n.comment) push({ kind: 'node', nodeName: n.name }, n.comment);
   for (const m of net.messages)
     if (m.comment) push({ kind: 'message', messageId: m.id }, m.comment);
   for (const m of net.messages)
     for (const s of m.signals)
-      if (s.comment)
-        push({ kind: 'signal', messageId: m.id, signalName: s.name }, s.comment);
+      if (s.comment) push({ kind: 'signal', messageId: m.id, signalName: s.name }, s.comment);
   return lines.join('\n');
 }
 

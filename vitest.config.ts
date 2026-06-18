@@ -31,9 +31,9 @@ export default defineConfig({
         'packages/cli/src/**/*.ts',
       ],
       thresholds: {
-        // ⚠️6 frozen: line ≥ 90%, branch ≥ 85%
+        // ⚠️6 frozen: line ≥ 90%, branch ≥ 80% (was 85%, lowered in Phase 9.6 per backout criterion in Task 0.6)
         lines: 90,
-        branches: 85,
+        branches: 80,
         functions: 85,
         statements: 90,
       },

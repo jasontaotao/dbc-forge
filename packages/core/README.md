@@ -42,3 +42,31 @@ to put the value), extract protects the round-trip (no silent augmentation).
   the structure).
 - `validate(network, { mode: 'diff' })` returns both as warnings; the diff
   surfaces the structural difference.
+
+## Usage
+
+```ts
+import { parseDbc, writeDbc, validate, diff, renderDiff } from '@dbc-forge/core';
+
+// Parse a DBC file
+const dbcText = await readFile('input.dbc', 'utf8');
+const net = parseDbc(dbcText);
+
+// Validate (build mode = strict)
+const r = validate(net, { mode: 'build' });
+if (r.errors.length > 0) {
+  console.error(r.errors);
+  process.exit(1);
+}
+
+// Write back to DBC
+const out = writeDbc(net, { mode: 'build' });
+
+// Or convert to Excel
+const xlsx = await writeExcel(net);
+
+// Compare two networks
+const otherNet = parseDbc(otherText);
+const report = diff(net, otherNet);
+console.log(renderDiff(report, 'text'));
+```

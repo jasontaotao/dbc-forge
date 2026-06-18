@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 
 import { createNetwork, addNode, addMessage } from '../../src/model/network.js';
 import { createSignal } from '../../src/model/signal.js';
-import { createValueTable, addValueTable as _addValueTable } from '../../src/model/value-table.js';
+import { createValueTable } from '../../src/model/value-table.js';
 import { writeExcel } from '../../src/excel/writer.js';
 import { parseExcelAsync } from '../../src/excel/reader.js';
 

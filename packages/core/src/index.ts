@@ -44,3 +44,6 @@ export type { ValidationIssue } from './errors.js';
 // Excel reader (async-only). The plan's `parseExcel` sync shim is provided
 // as a placeholder that throws; use parseExcelAsync.
 export { parseExcelAsync, parseExcel } from './excel/reader.js';
+
+// Excel writer (async; mirrors the reader's parseExcelAsync API).
+export { writeExcel } from './excel/writer.js';

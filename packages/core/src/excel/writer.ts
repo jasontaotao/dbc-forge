@@ -14,7 +14,8 @@ import {
   NODES_SHEET,
   MESSAGES_SHEET,
   SIGNALS_SHEET,
-  type SheetMapping,
+  VALUE_TABLES_SHEET,
+  VALUE_TABLE_ENTRIES_SHEET,
 } from './column-map.js';
 
 /** Render a Network into a Vector CANdb++ 8.2 xlsx Buffer. */
@@ -23,8 +24,30 @@ export async function writeExcel(net: Network): Promise<Buffer> {
   writeNodesSheet(wb, net);
   writeMessagesSheet(wb, net);
   writeSignalsSheet(wb, net);
+  writeValueTablesSheet(wb, net);
+  writeValueTableEntriesSheet(wb, net);
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);
+}
+
+/** Emit the ValueTable sheet: one row per VT (name + empty comment). */
+function writeValueTablesSheet(wb: ExcelJS.Workbook, net: Network): void {
+  const ws = wb.addWorksheet(VALUE_TABLES_SHEET.name);
+  ws.addRow(VALUE_TABLES_SHEET.columns.map((c) => c.header));
+  for (const vt of net.valueTables) {
+    ws.addRow([vt.name, '']);
+  }
+}
+
+/** Emit the ValueTableEntry sheet: one row per (VT, raw, name) entry. */
+function writeValueTableEntriesSheet(wb: ExcelJS.Workbook, net: Network): void {
+  const ws = wb.addWorksheet(VALUE_TABLE_ENTRIES_SHEET.name);
+  ws.addRow(VALUE_TABLE_ENTRIES_SHEET.columns.map((c) => c.header));
+  for (const vt of net.valueTables) {
+    for (const entry of vt.entries) {
+      ws.addRow([vt.name, entry.raw, entry.name]);
+    }
+  }
 }
 
 /** Emit the Node sheet from net.nodes. Header + one row per node. */
@@ -218,12 +241,10 @@ function encodeValueType(v: Signal['valueType']): string {
 }
 
 // Internal helpers re-exported to keep the test surface area consistent.
-export const _internal = { writeNodesSheet, writeMessagesSheet, writeSignalsSheet };
-
-/** Build a row of values for one record, given a SheetMapping and a field resolver. */
-export function _buildRow<V>(
-  sheet: SheetMapping,
-  resolve: (field: string) => string | number | boolean,
-): Array<string | number | boolean> {
-  return sheet.columns.map((c) => resolve(c.field));
-}
+export const _internal = {
+  writeNodesSheet,
+  writeMessagesSheet,
+  writeSignalsSheet,
+  writeValueTablesSheet,
+  writeValueTableEntriesSheet,
+};

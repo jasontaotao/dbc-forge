@@ -5,7 +5,15 @@
 // element. The schema is the same column-map the reader consumes, so a buffer
 // produced here can be fed back through parseExcelAsync for round-trip tests.
 
-import { Workbook } from 'exceljs';
+// exceljs exports a CJS object; the runtime `import ExcelJS from 'exceljs'`
+// gives us the workbook constructor via Node's CJS-default interop. The
+// eslint-plugin-import rules flag this as a missing default export, but
+// the import works at runtime under NodeNext resolution.
+// eslint-disable-next-line import/default, import/no-named-as-default-member
+import ExcelJS, { type Workbook as WorkbookType } from 'exceljs';
+
+const { Workbook } = ExcelJS;
+type Workbook = WorkbookType;
 
 import type { Network } from '../model/network.js';
 import type { Signal } from '../model/signal.js';

@@ -51,6 +51,9 @@ importers:
       '@types/node':
         specifier: ^20.11.0
         version: 20.19.43
+      exceljs:
+        specifier: ^4.4.0
+        version: 4.4.0
       execa:
         specifier: ^9.5.1
         version: 9.6.1

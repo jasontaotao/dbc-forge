@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { renderError } from '../../src/render/errors.js';
 import { ValidationError, ParseError, IOError, UsageError } from '@dbc-forge/core';
+import { describe, it, expect } from 'vitest';
+
+import { renderError } from '../../src/render/errors.js';
 
 describe('renderError', () => {
   it('renders UsageError with code 3 and includes hint when present', () => {

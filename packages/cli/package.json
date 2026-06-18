@@ -2,11 +2,13 @@
   "name": "@dbc-forge/cli",
   "version": "0.0.0",
   "type": "module",
-  "bin": { "dbc-forge": "./dist/main.js" },
+  "bin": {
+    "dbc-forge": "./dist/main.js"
+  },
   "main": "./dist/main.js",
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "tsc -b",
     "test": "vitest run"
   },
   "dependencies": {
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "exceljs": "^4.4.0",
     "execa": "^9.5.1"
   }
 }

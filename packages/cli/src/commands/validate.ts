@@ -1,8 +1,10 @@
-import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
+
 import { parseDbc, parseExcelAsync, validate, IOError } from '@dbc-forge/core';
-import { renderIssues } from '../render/issues.js';
 import type { Network } from '@dbc-forge/core';
+import { Command } from 'commander';
+
+import { renderIssues } from '../render/issues.js';
 
 async function loadInput(path: string): Promise<Network> {
   const buf = await readFile(path);

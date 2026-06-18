@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { renderIssues } from '../../src/render/issues.js';
 import type { ValidationIssue } from '@dbc-forge/core';
+import { describe, it, expect } from 'vitest';
+
+import { renderIssues } from '../../src/render/issues.js';
 
 describe('renderIssues', () => {
   it('returns empty string for empty issues', () => {

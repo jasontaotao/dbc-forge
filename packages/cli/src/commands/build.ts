@@ -1,6 +1,8 @@
-import { Command } from 'commander';
 import { readFile, writeFile } from 'node:fs/promises';
+
 import { parseExcelAsync, writeDbc, validate, IOError } from '@dbc-forge/core';
+import { Command } from 'commander';
+
 import { renderIssues } from '../render/issues.js';
 
 interface BuildOptions {

@@ -6,7 +6,15 @@
 // the frozen schema. If a real Vector export deviates from this schema, fix
 // the map first — do not special-case columns here.
 
-import { Workbook, type Worksheet } from 'exceljs';
+// exceljs exports a CJS object; the runtime `import ExcelJS from 'exceljs'`
+// gives us the workbook constructor via Node's CJS-default interop. The
+// eslint-plugin-import rules flag this as a missing default export, but
+// the import works at runtime under NodeNext resolution.
+// eslint-disable-next-line import/default, import/no-named-as-default-member
+import ExcelJS, { type Workbook as WorkbookType, type Worksheet } from 'exceljs';
+
+const { Workbook } = ExcelJS;
+type Workbook = WorkbookType;
 
 import { IOError, ParseError } from '../errors.js';
 import { createMessage } from '../model/message.js';

@@ -1,8 +1,9 @@
-import { Command } from 'commander';
 import { readFile, writeFile } from 'node:fs/promises';
 import { extname } from 'node:path';
+
 import { parseDbc, parseExcelAsync, diff, renderDiff, IOError, UsageError } from '@dbc-forge/core';
 import type { Network } from '@dbc-forge/core';
+import { Command } from 'commander';
 
 interface DiffOptions {
   format: string;

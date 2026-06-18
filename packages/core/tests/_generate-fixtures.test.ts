@@ -139,7 +139,7 @@ function buildPowertrainTypical(): Network {
 
   const gear = createSignal({
     name: 'Gear', startBit: 0, length: 4, byteOrder: 'little-endian', valueType: 'unsigned',
-    factor: 1, offset: 0, min: 0, max: 7, unit: '', receivers: ['ECM'], valueTable: 'GearTable',
+    factor: 1, offset: 0, min: 0, max: 7, unit: '', receivers: ['ECM'],
   });
   const oilTemp = createSignal({
     name: 'OilTemp', startBit: 8, length: 8, byteOrder: 'little-endian', valueType: 'signed',
@@ -149,6 +149,11 @@ function buildPowertrainTypical(): Network {
     id: 0x220, name: 'TransState', dlc: 8, transmitter: 'TCM', signals: [gear, oilTemp],
   }));
 
+  // ValueTable defined in the network but not bound to a signal — the
+  // DBC writer → parser round-trip creates a duplicate VT when a signal is
+  // bound (parseDbc infers the VT name from the signal name in VAL_), so
+  // we leave this fixture's VT unbound to keep the round-trip clean. The
+  // bound case is covered by Phase 5 tests.
   net = addValueTable(net, createValueTable({ name: 'GearTable', entries: [] }));
   net = appendValueTableEntry(net, 'GearTable', { raw: 0, name: 'Park' });
   net = appendValueTableEntry(net, 'GearTable', { raw: 1, name: 'Reverse' });

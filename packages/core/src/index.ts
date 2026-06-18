@@ -60,3 +60,6 @@ export type { ValidationMode, ValidationResult } from './validate/validator.js';
 // Diff module (Phase 7)
 export { diff, renderDiff } from './diff/index.js';
 export type { DiffReport, DiffChange, FieldDiff } from './diff/index.js';
+
+// Network equality (Phase 9)
+export { deepEqualNetwork } from './equality.js';

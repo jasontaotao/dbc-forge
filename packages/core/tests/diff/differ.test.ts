@@ -103,4 +103,27 @@ describe('diff', () => {
     expect(report.changes.some((c) => c.kind === 'attr-value-changed' && c.before === 100 && c.after === 200)).toBe(true);
     expect(report.summary.attributesChanged).toBe(1);
   });
+
+  it('integration: comprehensive diff between two Networks', () => {
+    // Build network A
+    let a = createNetwork({ version: '1.0' });
+    a = addNode(a, { name: 'ECM' });
+    a = addNode(a, { name: 'BCM' });
+    a = addMessage(a, { id: 0x100, name: 'M1', dlc: 8, transmitter: 'ECM' });
+    a = addMessage(a, { id: 0x200, name: 'M2', dlc: 4, transmitter: 'BCM' });
+
+    // Build network B with various changes
+    let b = createNetwork({ version: '1.0' });
+    b = addNode(b, { name: 'ECM' });
+    b = addNode(b, { name: 'Gateway' }); // BCM removed, Gateway added
+    b = addMessage(b, { id: 0x100, name: 'M1Renamed', dlc: 8, transmitter: 'ECM' }); // name change
+    // M2 removed
+    b = addMessage(b, { id: 0x300, name: 'M3', dlc: 8, transmitter: 'Gateway' }); // added
+
+    const report = diff(a, b);
+
+    expect(report.summary.messagesAdded).toBe(1); // M3
+    expect(report.summary.messagesRemoved).toBe(1); // M2
+    expect(report.summary.messagesChanged).toBe(1); // M1 name change
+  });
 });

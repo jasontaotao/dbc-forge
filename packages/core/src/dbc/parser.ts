@@ -6,7 +6,7 @@
 
 import { ParseError } from '../errors.js';
 import type { Network } from '../model/network.js';
-import { addNode, addValueTable, appendValueTableEntry, createNetwork } from '../model/network.js';
+import { addNode, addMessage, addValueTable, appendValueTableEntry, createNetwork } from '../model/network.js';
 import { createValueTable } from '../model/value-table.js';
 
 import { DBC_KEYWORDS } from './grammar.js';
@@ -160,7 +160,22 @@ function parseValEntries(s: string, lineNo: number): readonly { raw: number; nam
   }
   return entries;
 }
-function parseBoLine(_n: Network, _m: RegExpExecArray, _ln: number): Network { return _n; }
+function parseBoLine(net: Network, m: RegExpExecArray, _ln: number): Network {
+  // m[1] = id, m[2] = name, m[3] = dlc, m[4] = transmitter
+  const idStr = m[1];
+  const name = m[2];
+  const dlcStr = m[3];
+  const tx = m[4];
+  if (idStr === undefined || name === undefined || dlcStr === undefined || tx === undefined) {
+    return net;
+  }
+  return addMessage(net, {
+    id: Number(idStr),
+    name,
+    dlc: Number(dlcStr),
+    transmitter: tx,
+  });
+}
 function parseSgLine(_n: Network, _id: number, _l: string, _ln: number): Network { return _n; }
 function parseBaDefLine(_n: Network, _l: string, _ln: number): Network { return _n; }
 function parseBaLine(_n: Network, _l: string, _ln: number): Network { return _n; }

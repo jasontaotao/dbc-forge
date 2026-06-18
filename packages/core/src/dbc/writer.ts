@@ -13,7 +13,7 @@ import type {
   RelationAttributeAssignment,
 } from '../model/attributes/attribute.js';
 import type { Message } from '../model/message.js';
-import type { Network } from '../model/network.js';
+import type { Comment, Network } from '../model/network.js';
 import type { Signal } from '../model/signal.js';
 import type { ValueTable } from '../model/value-table.js';
 
@@ -383,14 +383,52 @@ function emitSigGroup(net: Network): string {
 }
 
 function emitCm(net: Network): string {
-  if (net.comments.length === 0) return '';
-  return net.comments
-    .map((c) => {
-      const target = emitCmTarget(c.scope);
-      const targetPart = target ? `${target} ` : '';
-      return `CM_ ${targetPart}"${escapeQuotes(c.text)}";`;
-    })
-    .join('\n');
+  // Dedup key is the full scope (kind + target) plus text. This drops the
+  // genuine duplicates that arise when both `net.comments` and a mirrored
+  // object's .comment carry the same (scope, text) — but it keeps distinct
+  // CM_ statements that happen to share text across different scopes
+  // (Vector tools routinely paste the same long data-dictionary paragraph
+  // onto 20+ messages, and each is a legal independent CM_).
+  const emitted = new Set<string>();
+  const lines: string[] = [];
+  const push = (scope: Comment['scope'], text: string): void => {
+    const key = `${scopeKind(scope)}|${scopeTarget(scope)}|${text}`;
+    if (emitted.has(key)) return;
+    emitted.add(key);
+    const target = emitCmTarget(scope);
+    const targetPart = target ? `${target} ` : '';
+    lines.push(`CM_ ${targetPart}"${escapeQuotes(text)}";`);
+  };
+  for (const c of net.comments) push(c.scope, c.text);
+  for (const n of net.nodes)
+    if (n.comment) push({ kind: 'node', nodeName: n.name }, n.comment);
+  for (const m of net.messages)
+    if (m.comment) push({ kind: 'message', messageId: m.id }, m.comment);
+  for (const m of net.messages)
+    for (const s of m.signals)
+      if (s.comment)
+        push({ kind: 'signal', messageId: m.id, signalName: s.name }, s.comment);
+  return lines.join('\n');
+}
+
+function scopeKind(scope: Comment['scope']): string {
+  return scope.kind;
+}
+function scopeTarget(scope: Comment['scope']): string {
+  switch (scope.kind) {
+    case 'network':
+      return '';
+    case 'node':
+      return scope.nodeName;
+    case 'message':
+      return String(scope.messageId);
+    case 'signal':
+      return `${scope.messageId}:${scope.signalName}`;
+    case 'envVar':
+      return scope.envVarName;
+    case 'valueTable':
+      return scope.valueTableName;
+  }
 }
 
 function emitCmTarget(scope: Network['comments'][number]['scope']): string {

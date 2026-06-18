@@ -217,6 +217,33 @@ CM_ SG_ 256 Speed "Engine speed in rpm";
     const out = writeDbc(net, { mode: 'extract' });
     expect(out).toMatch(/CM_ SG_ 256 Speed "Engine speed in rpm";/);
   });
+
+  it('emits duplicate-text CM_ on different scopes as separate lines', () => {
+    // Vector tools commonly paste the same long data-dictionary paragraph
+    // onto many messages/signals. Each CM_ is a legal independent line;
+    // dedup by text alone would incorrectly collapse them.
+    const net = parseDbc(`VERSION "1.0"
+NS_ :
+BS_:
+BU_: ECM
+BO_ 256 M1: 8 ECM
+ SG_ S1 : 0|8@1+ (1,0) [0|255] "" ECM
+BO_ 257 M2: 8 ECM
+ SG_ S2 : 0|8@1+ (1,0) [0|255] "" ECM
+
+CM_ BO_ 256 "shared paragraph";
+CM_ BO_ 257 "shared paragraph";
+CM_ SG_ 256 S1 "shared paragraph";
+CM_ SG_ 257 S2 "shared paragraph";
+`);
+    const out = writeDbc(net, { mode: 'extract' });
+    const cmLines = out.split(/\r?\n/).filter((l) => l.startsWith('CM_ '));
+    expect(cmLines).toHaveLength(4);
+    expect(out).toMatch(/CM_ BO_ 256 "shared paragraph";/);
+    expect(out).toMatch(/CM_ BO_ 257 "shared paragraph";/);
+    expect(out).toMatch(/CM_ SG_ 256 S1 "shared paragraph";/);
+    expect(out).toMatch(/CM_ SG_ 257 S2 "shared paragraph";/);
+  });
 });
 
 describe('dbc writer — SIG_GROUP_', () => {

@@ -250,3 +250,75 @@ describe('excel reader — attribute columns', () => {
     expect(net.attributeAssignments).toHaveLength(0);
   });
 });
+
+describe('excel reader — 29-bit IDs + malformed xlsx', () => {
+  it('auto-detects 29-bit extended IDs', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
+        ['Ext', '0x18FF1234', '8', 'ECM'],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.messages[0]?.id).toBe(0x18ff1234);
+    expect(net.messages[0]?.isExtended).toBe(true);
+  });
+
+  it('treats 11-bit IDs as non-extended', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
+        ['Std', '0x100', '8', 'ECM'],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.messages[0]?.isExtended).toBe(false);
+  });
+
+  it('throws IOError on malformed xlsx', async () => {
+    await expect(parseExcelAsync(Buffer.from('not a real xlsx file'))).rejects.toThrow();
+  });
+});
+
+describe('excel reader — full integration', () => {
+  it('reads a multi-sheet Vector-style matrix', async () => {
+    const buf = await buildBuffer({
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+        ['BCM', '1', ''],
+        ['Gateway', '2', 'Bridges bus'],
+      ],
+      Message: [
+        [
+          'Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter',
+          'Cycle Time [ms]', 'Send Type',
+        ],
+        ['EngineStatus', '0x100', '8', 'ECM', '100', 'Cyclic'],
+        ['BodyStatus', '0x200', '8', 'BCM', '200', 'Cyclic'],
+      ],
+      Signal: [
+        [
+          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
+          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
+          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
+          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+        ],
+        ['EngineStatus', 'RPM', '', '', '', '0', '16', '1', '+', '0.1', '0', '0', '6553.5', 'rpm', '', 'BCM', '0', '0', '0', ''],
+        ['EngineStatus', 'Temp', '', '', '', '16', '8', '1', '+', '1', '-40', '-40', '215', 'degC', '', 'BCM', '0', '0', '0', ''],
+        ['BodyStatus', 'DoorLock', 'Multiplexor', '', '', '0', '8', '1', '+', '1', '0', '0', '255', '', '', 'ECM', '0', '0', '0', ''],
+        ['BodyStatus', 'LockState', 'Muxed', '0', '0', '8', '8', '1', '+', '1', '0', '0', '255', '', '', 'ECM', '0', '0', '0', ''],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.nodes).toHaveLength(3);
+    expect(net.messages).toHaveLength(2);
+    expect(net.messages[0]?.signals).toHaveLength(2);
+    expect(net.messages[1]?.signals).toHaveLength(2);
+    expect(net.messages[1]?.signals[0]?.multiplexed.kind).toBe('Multiplexor');
+    // attribute wiring from Cycle Time / Send Type
+    expect(net.attributeAssignments).toHaveLength(4);
+  });
+});

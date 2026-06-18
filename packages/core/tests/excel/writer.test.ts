@@ -1,17 +1,17 @@
-import ExcelJS from 'exceljs';
+import { Workbook } from 'exceljs';
 import { describe, it, expect } from 'vitest';
 
+import { parseExcelAsync } from '../../src/excel/reader.js';
+import { writeExcel } from '../../src/excel/writer.js';
 import { createNetwork, addNode, addMessage } from '../../src/model/network.js';
 import { createSignal } from '../../src/model/signal.js';
 import { createValueTable } from '../../src/model/value-table.js';
-import { writeExcel } from '../../src/excel/writer.js';
-import { parseExcelAsync } from '../../src/excel/reader.js';
 
 async function readSheet(
   buf: Buffer,
   sheetName: string,
 ): Promise<string[][] | undefined> {
-  const wb = new ExcelJS.Workbook();
+  const wb = new Workbook();
   await wb.xlsx.load(buf as unknown as Parameters<typeof wb.xlsx.load>[0]);
   const ws = wb.getWorksheet(sheetName);
   if (!ws) return undefined;

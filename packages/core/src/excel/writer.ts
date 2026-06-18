@@ -5,7 +5,7 @@
 // element. The schema is the same column-map the reader consumes, so a buffer
 // produced here can be fed back through parseExcelAsync for round-trip tests.
 
-import ExcelJS from 'exceljs';
+import { Workbook } from 'exceljs';
 
 import type { Network } from '../model/network.js';
 import type { Signal } from '../model/signal.js';
@@ -20,7 +20,7 @@ import {
 
 /** Render a Network into a Vector CANdb++ 8.2 xlsx Buffer. */
 export async function writeExcel(net: Network): Promise<Buffer> {
-  const wb = new ExcelJS.Workbook();
+  const wb = new Workbook();
   writeNodesSheet(wb, net);
   writeMessagesSheet(wb, net);
   writeSignalsSheet(wb, net);
@@ -31,7 +31,7 @@ export async function writeExcel(net: Network): Promise<Buffer> {
 }
 
 /** Emit the ValueTable sheet: one row per VT (name + empty comment). */
-function writeValueTablesSheet(wb: ExcelJS.Workbook, net: Network): void {
+function writeValueTablesSheet(wb: Workbook, net: Network): void {
   const ws = wb.addWorksheet(VALUE_TABLES_SHEET.name);
   ws.addRow(VALUE_TABLES_SHEET.columns.map((c) => c.header));
   for (const vt of net.valueTables) {
@@ -40,7 +40,7 @@ function writeValueTablesSheet(wb: ExcelJS.Workbook, net: Network): void {
 }
 
 /** Emit the ValueTableEntry sheet: one row per (VT, raw, name) entry. */
-function writeValueTableEntriesSheet(wb: ExcelJS.Workbook, net: Network): void {
+function writeValueTableEntriesSheet(wb: Workbook, net: Network): void {
   const ws = wb.addWorksheet(VALUE_TABLE_ENTRIES_SHEET.name);
   ws.addRow(VALUE_TABLE_ENTRIES_SHEET.columns.map((c) => c.header));
   for (const vt of net.valueTables) {
@@ -51,7 +51,7 @@ function writeValueTableEntriesSheet(wb: ExcelJS.Workbook, net: Network): void {
 }
 
 /** Emit the Node sheet from net.nodes. Header + one row per node. */
-function writeNodesSheet(wb: ExcelJS.Workbook, net: Network): void {
+function writeNodesSheet(wb: Workbook, net: Network): void {
   const ws = wb.addWorksheet(NODES_SHEET.name);
   ws.addRow(NODES_SHEET.columns.map((c) => c.header));
   for (const node of net.nodes) {
@@ -73,7 +73,7 @@ function writeNodesSheet(wb: ExcelJS.Workbook, net: Network): void {
 }
 
 /** Emit the Message sheet. Wire attributes (Cycle Time / Send Type / etc.) are looked up via attributeAssignments. */
-function writeMessagesSheet(wb: ExcelJS.Workbook, net: Network): void {
+function writeMessagesSheet(wb: Workbook, net: Network): void {
   const ws = wb.addWorksheet(MESSAGES_SHEET.name);
   ws.addRow(MESSAGES_SHEET.columns.map((c) => c.header));
   for (const m of net.messages) {
@@ -147,7 +147,7 @@ function formatHexId(id: number): string {
 }
 
 /** Emit the Signal sheet. One row per signal. Mux encoding: 'Multiplexor' / 'Muxed' / 'Extended'. */
-function writeSignalsSheet(wb: ExcelJS.Workbook, net: Network): void {
+function writeSignalsSheet(wb: Workbook, net: Network): void {
   const ws = wb.addWorksheet(SIGNALS_SHEET.name);
   ws.addRow(SIGNALS_SHEET.columns.map((c) => c.header));
   for (const m of net.messages) {

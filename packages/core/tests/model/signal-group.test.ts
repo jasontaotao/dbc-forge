@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { createSignalGroup } from '../../src/model/signal-group.js';
 
 describe('SignalGroup', () => {

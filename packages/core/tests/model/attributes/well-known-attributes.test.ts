@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
+
 import {
   NETWORK_ATTRIBUTES,
   MESSAGE_ATTRIBUTES,
   SIGNAL_ATTRIBUTES,
-  NODE_ATTRIBUTES,
   RELATION_ATTRIBUTES,
   isWellKnownAttribute,
 } from '../../../src/model/attributes/well-known-attributes.js';

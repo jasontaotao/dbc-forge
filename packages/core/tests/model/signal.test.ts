@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { createSignal, isMultiplexor, isMuxed, muxBucket } from '../../src/model/signal.js';
 
 describe('Signal', () => {

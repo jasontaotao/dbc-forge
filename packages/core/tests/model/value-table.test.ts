@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { createValueTable, findValue } from '../../src/model/value-table.js';
 
 describe('ValueTable', () => {

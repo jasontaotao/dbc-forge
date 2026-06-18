@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { createMessage } from '../../src/model/message.js';
 
 describe('Message', () => {

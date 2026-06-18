@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { createNetwork, addMessage } from '../../src/model/network.js';
 
 describe('Network', () => {

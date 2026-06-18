@@ -2,6 +2,21 @@
 
 Pure-function library for DBC ↔ Excel communication matrix conversion. No fs, no console, no process.
 
+## Public API: parseExcelAsync vs parseExcel
+
+The Excel reader uses [`exceljs`](https://www.npmjs.com/package/exceljs), which
+is async-only. The public entry point is therefore:
+
+```ts
+import { parseExcelAsync } from '@dbc-forge/core';
+const net = await parseExcelAsync(buffer);
+```
+
+A sync `parseExcel` is exported as a documented placeholder that throws — the
+plan task 9.11.1 tracks the sync shim. The Excel schema (column-map.ts,
+frozen ⚠️1) is the single source of truth; readers and the upcoming writer
+both derive their column ordering from it.
+
 ## Policy: Attribute Definition (BA_DEF_) auto-completion
 
 ⚠️5 frozen 2026-06-18. Two paths:

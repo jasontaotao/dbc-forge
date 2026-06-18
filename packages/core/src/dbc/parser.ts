@@ -7,7 +7,10 @@
 import { ParseError } from '../errors.js';
 import type { Network } from '../model/network.js';
 import { addNode, addMessage, addValueTable, appendValueTableEntry, createNetwork } from '../model/network.js';
+import { createMessage } from '../model/message.js';
+import { createSignal } from '../model/signal.js';
 import { createValueTable } from '../model/value-table.js';
+import type { Multiplexed, Signal } from '../model/signal.js';
 
 import { DBC_KEYWORDS } from './grammar.js';
 
@@ -113,6 +116,26 @@ function looksLikeSectionStart(trimmed: string): boolean {
   return /^(VERSION|BS_:|BU_:|BU_ |VAL_TABLE_ |BO_ |SG_ |BA_DEF_ |BA_DEF_DEF_ |BA_DEF_REL_ |BA_DEF_DEF_REL_ |BA_ |BA_REL_ |CM_ |VAL_ |SIG_GROUP_ |SIG_VALTYPE_ |BO_TX_BU_ |SG_MUL_VAL_ |EV_ |ENVVAR_DATA_ )/.test(trimmed);
 }
 
+function appendSignal(net: Network, messageId: number, signal: Signal): Network {
+  return {
+    ...net,
+    messages: net.messages.map((m) =>
+      m.id === messageId
+        ? createMessage({
+            id: m.id,
+            name: m.name,
+            dlc: m.dlc,
+            transmitter: m.transmitter,
+            additionalTransmitters: m.additionalTransmitters,
+            signals: [...m.signals, signal],
+            ...(m.comment !== undefined ? { comment: m.comment } : {}),
+            ...(m.muxExtensions !== undefined ? { muxExtensions: m.muxExtensions } : {}),
+          })
+        : m,
+    ),
+  };
+}
+
 function parseBuLine(net: Network, trimmed: string): Network {
   const names = trimmed.replace(/^BU_:/, '').trim().split(/\s+/).filter(Boolean);
   let n = net;
@@ -176,7 +199,69 @@ function parseBoLine(net: Network, m: RegExpExecArray, _ln: number): Network {
     transmitter: tx,
   });
 }
-function parseSgLine(_n: Network, _id: number, _l: string, _ln: number): Network { return _n; }
+function parseSgLine(net: Network, messageId: number, line: string, lineNo: number): Network {
+  // Format: `SG_ <Name> [M|m<v>|M<v>m<v>] : <start>|<length>@<order><sign> (<factor>,<offset>) [<min>|<max>] "<unit>" <receivers>`
+  // The leading whitespace is allowed; we work on the trimmed form.
+  const trimmed = line.trim();
+  const m = /^SG_\s+(\S+)(?:\s+(M|m\d+|M\d+m\d+))?\s*:\s*(\d+)\|(\d+)@([01])([+-])\s*\(\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*\)\s*\[\s*([-+0-9.eE]+)\s*\|\s*([-+0-9.eE]+)\s*\]\s*"([^"]*)"\s*(.*)$/.exec(trimmed);
+  if (!m) throw new ParseError(`malformed SG_: ${trimmed}`, { line: lineNo, column: 1 });
+  const name = m[1];
+  const muxStr = m[2];
+  const startBitStr = m[3];
+  const lengthStr = m[4];
+  const orderChar = m[5];
+  const signChar = m[6];
+  const factorStr = m[7];
+  const offsetStr = m[8];
+  const minStr = m[9];
+  const maxStr = m[10];
+  const unit = m[11];
+  const receiversStr = m[12];
+  if (name === undefined || startBitStr === undefined || lengthStr === undefined ||
+      orderChar === undefined || signChar === undefined || factorStr === undefined ||
+      offsetStr === undefined || minStr === undefined || maxStr === undefined ||
+      unit === undefined || receiversStr === undefined) {
+    throw new ParseError(`malformed SG_: ${trimmed}`, { line: lineNo, column: 1 });
+  }
+  const multiplexed = parseMuxSpecifier(muxStr);
+  const receivers = receiversStr.trim().split(/[,\s]+/).filter(Boolean);
+  const signal = createSignal({
+    name,
+    startBit: Number(startBitStr),
+    length: Number(lengthStr),
+    byteOrder: orderChar === '1' ? 'little-endian' : 'big-endian',
+    valueType: signChar === '-' ? 'signed' : 'unsigned',
+    factor: Number(factorStr),
+    offset: Number(offsetStr),
+    min: Number(minStr),
+    max: Number(maxStr),
+    unit,
+    receivers,
+    multiplexed,
+  });
+  return appendSignal(net, messageId, signal);
+}
+
+function parseMuxSpecifier(s: string | undefined): Multiplexed {
+  if (s === undefined) return { kind: 'Plain' };
+  if (s === 'M') return { kind: 'Multiplexor' };
+  const mExtMuxed = /^M(\d+)m(\d+)$/.exec(s);
+  if (mExtMuxed) {
+    const v = mExtMuxed[1];
+    if (v !== undefined) return { kind: 'Multiplexor' };
+  }
+  const mMuxed = /^m(\d+)$/.exec(s);
+  if (mMuxed) {
+    const v = mMuxed[1];
+    if (v !== undefined) return { kind: 'Muxed', value: Number(v) };
+  }
+  const mExt = /^M(\d+)m(\d+)$/.exec(s);
+  if (mExt) {
+    const v = mExt[2];
+    if (v !== undefined) return { kind: 'ExtendedMuxed', value: Number(v) };
+  }
+  return { kind: 'Plain' };
+}
 function parseBaDefLine(_n: Network, _l: string, _ln: number): Network { return _n; }
 function parseBaLine(_n: Network, _l: string, _ln: number): Network { return _n; }
 function parseCmLine(_n: Network, _l: string, _id: number | null): Network { return _n; }

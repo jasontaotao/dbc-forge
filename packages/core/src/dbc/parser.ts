@@ -106,7 +106,72 @@ export function parseDbc(text: string): Network {
     if (trimmed.startsWith('EV_ ') || trimmed.startsWith('ENVVAR_DATA_ ')) continue;
     throw new ParseError(`unknown DBC keyword: ${trimmed}`, { line: lineNo, column: 1 });
   }
-  return net;
+
+  // Post-processing pass (Phase 9.5):
+  //   1. applyNmStationAddress: BU_ has no address slot; the NmStationAddress
+  //      attribute assignment is the canonical source of node addresses.
+  //   2. resolveEnumAttributeValues: the DBC writer emits ENUM values as
+  //      integer indices, not strings. Translate them back to the canonical
+  //      string value so the Network state matches what the Excel reader
+  //      produces from a Network sheet row.
+  return resolveEnumAttributeValues(applyNmStationAddress(net));
+}
+
+/**
+ * Post-process: set `Node.address` from the `NmStationAddress` attribute
+ * assignment. The DBC `BU_` line has no address slot; CAN stacks encode the
+ * node address as a node-level attribute (NmStationAddress, well-known).
+ */
+function applyNmStationAddress(net: Network): Network {
+  const addrByNode = new Map<string, number>();
+  for (const a of net.attributeAssignments) {
+    if (a.name === 'NmStationAddress' && a.target.kind === 'node' && typeof a.value === 'number') {
+      addrByNode.set(a.target.nodeName, a.value);
+    }
+  }
+  if (addrByNode.size === 0) return net;
+  const newNodes = net.nodes.map((n) => {
+    const addr = addrByNode.get(n.name);
+    return addr !== undefined ? { ...n, address: addr } : n;
+  });
+  return { ...net, nodes: newNodes };
+}
+
+/**
+ * Post-process: convert ENUM attribute values that the writer emitted as
+ * integer indices back to their canonical string value. This keeps the
+ * in-memory Network state symmetric with what the Excel reader produces
+ * (Network sheet always emits the string form). Applies to both
+ * `attributeAssignments[].value` and `attributeDefs[].defaultValue`.
+ */
+function resolveEnumAttributeValues(net: Network): Network {
+  if (net.attributeAssignments.length === 0 && net.attributeDefs.length === 0) return net;
+  const defsByName = new Map(net.attributeDefs.map((d) => [d.name, d] as const));
+  let aChanged = false;
+  const nextAssignments = net.attributeAssignments.map((a) => {
+    const def = defsByName.get(a.name);
+    if (!def || def.type.kind !== 'enum') return a;
+    if (typeof a.value !== 'number') return a;
+    const v = def.type.values[a.value];
+    if (v === undefined) return a;
+    aChanged = true;
+    return { ...a, value: v };
+  });
+  let dChanged = false;
+  const nextDefs = net.attributeDefs.map((d) => {
+    if (d.type.kind !== 'enum') return d;
+    if (typeof d.defaultValue !== 'number') return d;
+    const v = d.type.values[d.defaultValue];
+    if (v === undefined) return d;
+    dChanged = true;
+    return { ...d, defaultValue: v };
+  });
+  if (!aChanged && !dChanged) return net;
+  return {
+    ...net,
+    attributeAssignments: aChanged ? nextAssignments : net.attributeAssignments,
+    attributeDefs: dChanged ? nextDefs : net.attributeDefs,
+  };
 }
 
 function extractQuoted(s: string, line: number): string {
@@ -363,21 +428,26 @@ function parseBaTargetRef(name: string, rest: string, line: string, lineNo: numb
     if (idStr === undefined || sigName === undefined || valStr === undefined) throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
     return { target: { kind: 'signal', messageId: Number(idStr), signalName: sigName }, value: coerceAttrValue(valStr.trim()) };
   }
-  // BU_ <nodeName> <value>
-  const mBu = /^BU_\s+(\S+)\s+(.*)$/.exec(rest);
+  // BU_ <nodeName> <value> — must have at least a value token after the
+  // node name. The writer emits a bare `BU_` token for network-level BA_ lines
+  // (see emitTargetRef); we must NOT consume `BU_` as a node-target prefix in
+  // that case.
+  const mBu = /^BU_\s+(\S+)\s+(\S.*)$/.exec(rest);
   if (mBu) {
     const nodeName = mBu[1];
     const valStr = mBu[2];
     if (nodeName === undefined || valStr === undefined) throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
-    // If the value part is empty or absent, this is a network-level BA_ (rare
-    // but valid per DBC spec). Distinguish: if valStr is empty AND the type
-    // is a well-known network attribute, treat as network target.
-    if (valStr.trim() === '' && isNetworkAttribute(name)) {
-      return { target: { kind: 'network' }, value: '' };
-    }
     return { target: { kind: 'node', nodeName }, value: coerceAttrValue(valStr.trim()) };
   }
-  // Otherwise: network-level value
+  // BU_ with a single value (or `BU_ 0;`): network-level BA_ (DBC spec allows
+  // the writer to emit `BA_ "<name>" BU_ <value>;` for network attrs).
+  const mNet = /^BU_\s+(\S.*)$/.exec(rest);
+  if (mNet) {
+    const valStr = mNet[1];
+    if (valStr === undefined) throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
+    return { target: { kind: 'network' }, value: coerceAttrValue(valStr.trim()) };
+  }
+  // Otherwise: bare network-level value (no target ref at all).
   return { target: { kind: 'network' }, value: coerceAttrValue(rest.trim()) };
 }
 
@@ -587,7 +657,33 @@ function parseBoTxBuLine(net: Network, line: string, lineNo: number): Network {
   };
 }
 
-function parseSgMulValLine(net: Network, _id: number, _l: string, _ln: number): Network { return net; }
+function parseSgMulValLine(net: Network, _id: number, line: string, lineNo: number): Network {
+  // Format: SG_MUL_VAL_ <id> <name> <value1> <value2> ... ;
+  const m = /^SG_MUL_VAL_\s+(\d+)\s+(\S+)\s+(.*?)\s*;\s*$/.exec(line);
+  if (!m) throw new ParseError(`malformed SG_MUL_VAL_: ${line}`, { line: lineNo, column: 1 });
+  const idStr = m[1];
+  const sigName = m[2];
+  const rest = m[3];
+  if (idStr === undefined || sigName === undefined || rest === undefined) {
+    throw new ParseError(`malformed SG_MUL_VAL_: ${line}`, { line: lineNo, column: 1 });
+  }
+  const messageId = Number(idStr);
+  const values = rest
+    .trim()
+    .split(/\s+/)
+    .map((s) => Number(s))
+    .filter((v) => !Number.isNaN(v));
+  const idx = net.messages.findIndex((m2) => m2.id === messageId);
+  if (idx < 0) return net;
+  const orig = net.messages[idx];
+  if (!orig) return net;
+  const existing = orig.muxExtensions ? new Map(orig.muxExtensions) : new Map<string, readonly number[]>();
+  existing.set(sigName, values);
+  const updated = createMessage({ ...orig, muxExtensions: existing });
+  const newMessages = [...net.messages];
+  newMessages[idx] = updated;
+  return { ...net, messages: newMessages };
+}
 function parseBaDefRelLine(_n: Network, _l: string, _ln: number): Network { return _n; }
 function parseBaRelLine(_n: Network, _l: string, _ln: number): Network { return _n; }
 

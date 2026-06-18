@@ -105,12 +105,58 @@ export const VALUE_TABLE_ENTRIES_SHEET: SheetMapping = {
   ],
 };
 
+export const NETWORK_SHEET: SheetMapping = {
+  name: 'Network',
+  columns: [
+    { header: 'Version', field: 'version', kind: 'string' },
+    { header: 'BusType', field: 'busType', kind: 'enum' },
+    { header: 'Baudrate', field: 'baudrate', kind: 'number' },
+    { header: 'DBName', field: 'dbName', kind: 'string' },
+  ],
+};
+
+export const ATTRIBUTE_DEFS_SHEET: SheetMapping = {
+  name: 'AttributeDef',
+  columns: [
+    { header: 'Name', field: 'name', kind: 'string' },
+    { header: 'Target', field: 'target', kind: 'enum' },
+    { header: 'Type', field: 'type', kind: 'enum' },
+    { header: 'Min', field: 'min', kind: 'number' },
+    { header: 'Max', field: 'max', kind: 'number' },
+    { header: 'Values', field: 'values', kind: 'string' },
+    { header: 'Default', field: 'default', kind: 'string' },
+  ],
+};
+
+export const ATTRIBUTE_ASSIGNMENTS_SHEET: SheetMapping = {
+  name: 'AttributeAssignment',
+  columns: [
+    { header: 'Name', field: 'name', kind: 'string' },
+    { header: 'Target Kind', field: 'targetKind', kind: 'enum' },
+    { header: 'Target Ref', field: 'targetRef', kind: 'string' },
+    { header: 'Value', field: 'value', kind: 'string' },
+  ],
+};
+
+export const MUX_EXTENSIONS_SHEET: SheetMapping = {
+  name: 'MuxExtension',
+  columns: [
+    { header: 'Message ID (hex)', field: 'messageId', kind: 'hex' },
+    { header: 'Signal Name', field: 'signalName', kind: 'string' },
+    { header: 'Mux Values', field: 'muxValues', kind: 'string' },
+  ],
+};
+
 export const ALL_SHEETS = [
+  NETWORK_SHEET,
   NODES_SHEET,
   MESSAGES_SHEET,
   SIGNALS_SHEET,
   VALUE_TABLES_SHEET,
   VALUE_TABLE_ENTRIES_SHEET,
+  ATTRIBUTE_DEFS_SHEET,
+  ATTRIBUTE_ASSIGNMENTS_SHEET,
+  MUX_EXTENSIONS_SHEET,
 ] as const;
 
 export function getColumnIndex(sheet: SheetMapping, header: string): number {

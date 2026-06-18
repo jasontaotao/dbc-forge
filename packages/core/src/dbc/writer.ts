@@ -234,6 +234,18 @@ function emitBaDef(net: Network, mode: WriteMode): string {
     // Auto-add well-known attr defs for any BA_ that references a name not
     // already declared. This is the ⚠️5 build-mode enhancement.
     const declared = new Set(defs.map((d) => d.name));
+    // Phase 9.5: when a node has an address, the writer injects an
+    // NmStationAddress BA_ assignment. The matching BA_DEF_ must also be
+    // declared so the parser can read the assignment back.
+    const hasAddressAssignment = net.nodes.some((n) => n.address !== undefined);
+    if (hasAddressAssignment && !declared.has('NmStationAddress')) {
+      defs.push({
+        name: 'NmStationAddress',
+        target: 'node',
+        type: { kind: 'int', min: 0, max: 255 },
+        defaultValue: 0,
+      });
+    }
     for (const a of net.attributeAssignments) {
       if (!declared.has(a.name)) {
         // We don't know the type/target of arbitrary user attrs, so we
@@ -292,8 +304,30 @@ function emitBaDefRel(net: Network): string {
 }
 
 function emitBa(net: Network): string {
-  if (net.attributeAssignments.length === 0) return '';
-  return net.attributeAssignments.map((a) => emitBaAssignment(a, net)).join('\n');
+  // Phase 9.5: emit a NmStationAddress BA_ line for any node that has an
+  // address but no existing NmStationAddress assignment in the Network.
+  // The DBC BU_ line has no address slot; the well-known NmStationAddress
+  // attribute is the canonical place. The reader's applyNmStationAddress
+  // post-processor picks them up and stamps them back onto node.address.
+  //
+  // Skip injection if the Network already carries a NmStationAddress
+  // assignment (e.g. from an upstream DBC parse) so the round-trip stays
+  // symmetric — we never duplicate the assignment.
+  const alreadyHasNmAddr = net.attributeAssignments.some(
+    (a) => a.name === 'NmStationAddress' && a.target.kind === 'node',
+  );
+  const addressAssignments: AttributeAssignment[] = alreadyHasNmAddr
+    ? []
+    : net.nodes
+        .filter((n) => n.address !== undefined)
+        .map((n) => ({
+          name: 'NmStationAddress',
+          target: { kind: 'node' as const, nodeName: n.name },
+          value: n.address as number,
+        }));
+  const all = [...addressAssignments, ...net.attributeAssignments];
+  if (all.length === 0) return '';
+  return all.map((a) => emitBaAssignment(a, net)).join('\n');
 }
 
 function emitBaAssignment(a: AttributeAssignment, net: Network): string {

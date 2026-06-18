@@ -20,6 +20,7 @@ import { IOError, ParseError } from '../errors.js';
 import { createMessage } from '../model/message.js';
 import {
   addAttributeAssignment,
+  addAttributeDef,
   addMessage,
   addNode,
   addValueTable,
@@ -34,10 +35,15 @@ import {
   type ValueType,
 } from '../model/signal.js';
 import { createValueTable, type ValueTableEntry } from '../model/value-table.js';
+import type { AttributeTargetRef, AttrTarget, AttrType } from '../model/attributes/attribute.js';
 
 import {
-  NODES_SHEET,
+  ATTRIBUTE_ASSIGNMENTS_SHEET,
+  ATTRIBUTE_DEFS_SHEET,
   MESSAGES_SHEET,
+  MUX_EXTENSIONS_SHEET,
+  NETWORK_SHEET,
+  NODES_SHEET,
   SIGNALS_SHEET,
   VALUE_TABLES_SHEET,
   VALUE_TABLE_ENTRIES_SHEET,
@@ -79,6 +85,12 @@ export function parseExcel(_buf: Buffer): Network {
 function readFromWorkbook(wb: Workbook): Network {
   let net = createNetwork({ version: '' });
 
+  // The Network sheet is read first so its version / BusType / Baudrate /
+  // DBName land on the network before any other sheet creates messages
+  // or attribute assignments.
+  const networkSheet = wb.getWorksheet(NETWORK_SHEET.name);
+  if (networkSheet) net = readNetworkSheet(networkSheet, net);
+
   const nodeSheet = wb.getWorksheet(NODES_SHEET.name);
   if (nodeSheet) net = readNodesSheet(nodeSheet, net);
 
@@ -93,6 +105,15 @@ function readFromWorkbook(wb: Workbook): Network {
 
   const sigSheet = wb.getWorksheet(SIGNALS_SHEET.name);
   if (sigSheet) net = readSignalsSheet(sigSheet, net);
+
+  const attrDefSheet = wb.getWorksheet(ATTRIBUTE_DEFS_SHEET.name);
+  if (attrDefSheet) net = readAttributeDefsSheet(attrDefSheet, net);
+
+  const attrAssignSheet = wb.getWorksheet(ATTRIBUTE_ASSIGNMENTS_SHEET.name);
+  if (attrAssignSheet) net = readAttributeAssignmentsSheet(attrAssignSheet, net);
+
+  const muxExtSheet = wb.getWorksheet(MUX_EXTENSIONS_SHEET.name);
+  if (muxExtSheet) net = readMuxExtensionsSheet(muxExtSheet, net);
 
   return net;
 }
@@ -118,6 +139,17 @@ function readNodesSheet(ws: Worksheet, net: Network): Network {
       ...(address !== undefined ? { address } : {}),
       ...(comment ? { comment } : {}),
     });
+    // Phase 9.5: when the Node Address cell is filled, also create a
+    // NmStationAddress attribute assignment so the DBC round-trip stays
+    // symmetric (the DBC writer injects this exact assignment for nodes
+    // that have an address).
+    if (address !== undefined) {
+      next = addAttributeAssignment(next, {
+        name: 'NmStationAddress',
+        target: { kind: 'node', nodeName: name },
+        value: address,
+      });
+    }
   }
   return next;
 }
@@ -382,4 +414,166 @@ export {
   SIGNALS_SHEET,
   VALUE_TABLES_SHEET,
   VALUE_TABLE_ENTRIES_SHEET,
+  NETWORK_SHEET,
+  ATTRIBUTE_DEFS_SHEET,
+  ATTRIBUTE_ASSIGNMENTS_SHEET,
+  MUX_EXTENSIONS_SHEET,
 };
+
+/* --------------------------------------------------------------------------
+ * Phase 9.5: extended sheets
+ *
+ * The Vector CANdb++ matrix export is a flat per-entity view, so a few
+ * Network-level concepts (Network.version, attributeDefs, attributeAssignments,
+ * message.muxExtensions) are not captured by the per-sheet readers above. We
+ * model each as an additional sheet:
+ *
+ *   - Network:        single-row sheet with Version / BusType / Baudrate / DBName.
+ *   - AttributeDef:   one row per attribute declaration.
+ *   - AttributeAssignment: one row per (name, target, value) tuple.
+ *   - MuxExtension:   one row per (messageId, signalName, value-list) tuple.
+ *
+ * The readers are tolerant: blank rows or missing sheets are no-ops; the
+ * corresponding fields remain at their default. Existing round-trip tests
+ * continue to pass because the new sheets are not required.
+ * -------------------------------------------------------------------------- */
+
+function readNetworkSheet(ws: Worksheet, net: Network): Network {
+  // Single-row sheet: row 1 is headers, row 2 is the only data row.
+  const row = ws.getRow(2);
+  if (!row || row.hasValues === false) return net;
+  let next: Network = net;
+  const versionCell = row.getCell(1).value;
+  if (versionCell !== null && versionCell !== undefined && String(versionCell).length > 0) {
+    next = { ...next, version: String(versionCell) };
+  }
+  const busTypeCell = row.getCell(2).value;
+  if (busTypeCell !== null && busTypeCell !== undefined && String(busTypeCell).length > 0) {
+    next = addAttributeAssignment(next, {
+      name: 'BusType',
+      target: { kind: 'network' },
+      value: String(busTypeCell),
+    });
+  }
+  const baudrateCell = row.getCell(3).value;
+  if (baudrateCell !== null && baudrateCell !== undefined && String(baudrateCell).length > 0) {
+    const n = Number(baudrateCell);
+    if (!Number.isNaN(n)) {
+      next = addAttributeAssignment(next, {
+        name: 'Baudrate',
+        target: { kind: 'network' },
+        value: n,
+      });
+    }
+  }
+  const dbNameCell = row.getCell(4).value;
+  if (dbNameCell !== null && dbNameCell !== undefined && String(dbNameCell).length > 0) {
+    next = addAttributeAssignment(next, {
+      name: 'DBName',
+      target: { kind: 'network' },
+      value: String(dbNameCell),
+    });
+  }
+  return next;
+}
+
+function readAttributeDefsSheet(ws: Worksheet, net: Network): Network {
+  const rows = readSheetRows(ws, ATTRIBUTE_DEFS_SHEET);
+  let next = net;
+  for (const r of rows) {
+    const name = String(r['name'] ?? '').trim();
+    if (!name) continue;
+    const targetStr = String(r['target'] ?? '').trim();
+    const typeStr = String(r['type'] ?? '').trim();
+    const min = r['min'] !== undefined && r['min'] !== '' ? Number(r['min']) : 0;
+    const max = r['max'] !== undefined && r['max'] !== '' ? Number(r['max']) : 0;
+    const valuesStr = String(r['values'] ?? '').trim();
+    const defaultStr = String(r['default'] ?? '');
+    const target: AttrTarget =
+      targetStr === 'message' ? 'message'
+        : targetStr === 'signal' ? 'signal'
+          : targetStr === 'node' ? 'node'
+            : 'network';
+    let type: AttrType;
+    if (typeStr === 'int') type = { kind: 'int', min, max };
+    else if (typeStr === 'hex') type = { kind: 'hex', min, max };
+    else if (typeStr === 'float') type = { kind: 'float', min, max };
+    else if (typeStr === 'string') type = { kind: 'string' };
+    else {
+      // ENUM (or default): split quoted values out of "values" cell.
+      const values: string[] = [];
+      const re = /"([^"]*)"/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(valuesStr)) !== null) {
+        if (m[1] !== undefined) values.push(m[1]);
+      }
+      type = { kind: 'enum', values };
+    }
+    const defaultValue: number | string =
+      defaultStr.length === 0 ? 0 : isNaN(Number(defaultStr)) ? defaultStr : Number(defaultStr);
+    next = addAttributeDef(next, { name, target, type, defaultValue });
+  }
+  return next;
+}
+
+function readAttributeAssignmentsSheet(ws: Worksheet, net: Network): Network {
+  const rows = readSheetRows(ws, ATTRIBUTE_ASSIGNMENTS_SHEET);
+  let next = net;
+  for (const r of rows) {
+    const name = String(r['name'] ?? '').trim();
+    if (!name) continue;
+    const targetKind = String(r['targetKind'] ?? '').trim();
+    const targetRef = String(r['targetRef'] ?? '').trim();
+    const valueStr = String(r['value'] ?? '');
+    const value: number | string = isNaN(Number(valueStr)) ? valueStr : Number(valueStr);
+    let target: AttributeTargetRef | null = null;
+    if (targetKind === 'network') {
+      target = { kind: 'network' };
+    } else if (targetKind === 'message') {
+      const id = parseHexOrDec(targetRef);
+      if (id !== undefined) target = { kind: 'message', messageId: id };
+    } else if (targetKind === 'signal') {
+      const sep = targetRef.indexOf('|');
+      if (sep > 0) {
+        const idStr = targetRef.slice(0, sep);
+        const sigName = targetRef.slice(sep + 1);
+        const id = parseHexOrDec(idStr);
+        if (id !== undefined) target = { kind: 'signal', messageId: id, signalName: sigName };
+      }
+    } else if (targetKind === 'node') {
+      target = { kind: 'node', nodeName: targetRef };
+    }
+    if (target === null) continue;
+    next = addAttributeAssignment(next, { name, target, value });
+  }
+  return next;
+}
+
+function readMuxExtensionsSheet(ws: Worksheet, net: Network): Network {
+  const rows = readSheetRows(ws, MUX_EXTENSIONS_SHEET);
+  let next = net;
+  for (const r of rows) {
+    const idStr = String(r['messageId'] ?? '').trim();
+    if (!idStr) continue;
+    const messageId = parseHexOrDec(idStr);
+    if (messageId === undefined) continue;
+    const sigName = String(r['signalName'] ?? '').trim();
+    if (!sigName) continue;
+    const muxValuesStr = String(r['muxValues'] ?? '').trim();
+    const muxValues = muxValuesStr
+      .split(/\s+/)
+      .map((s) => Number(s))
+      .filter((v) => !Number.isNaN(v));
+    const idx = next.messages.findIndex((m) => m.id === messageId);
+    if (idx < 0) continue;
+    const orig = next.messages[idx];
+    if (!orig) continue;
+    const existing = orig.muxExtensions ? new Map(orig.muxExtensions) : new Map<string, readonly number[]>();
+    existing.set(sigName, muxValues);
+    const updated = createMessage({ ...orig, muxExtensions: existing });
+    const newMessages = [...next.messages];
+    newMessages[idx] = updated;
+    next = { ...next, messages: newMessages };
+  }
+  return next;
+}

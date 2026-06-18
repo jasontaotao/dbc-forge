@@ -19,8 +19,12 @@ import type { Network } from '../model/network.js';
 import type { Signal } from '../model/signal.js';
 
 import {
-  NODES_SHEET,
+  ATTRIBUTE_ASSIGNMENTS_SHEET,
+  ATTRIBUTE_DEFS_SHEET,
   MESSAGES_SHEET,
+  MUX_EXTENSIONS_SHEET,
+  NETWORK_SHEET,
+  NODES_SHEET,
   SIGNALS_SHEET,
   VALUE_TABLES_SHEET,
   VALUE_TABLE_ENTRIES_SHEET,
@@ -29,13 +33,149 @@ import {
 /** Render a Network into a Vector CANdb++ 8.2 xlsx Buffer. */
 export async function writeExcel(net: Network): Promise<Buffer> {
   const wb = new Workbook();
+  writeNetworkSheet(wb, net);
   writeNodesSheet(wb, net);
   writeMessagesSheet(wb, net);
   writeSignalsSheet(wb, net);
   writeValueTablesSheet(wb, net);
   writeValueTableEntriesSheet(wb, net);
+  writeAttributeDefsSheet(wb, net);
+  writeAttributeAssignmentsSheet(wb, net);
+  writeMuxExtensionsSheet(wb, net);
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);
+}
+
+/** Emit the Network sheet (single data row) with version + bus attributes. */
+function writeNetworkSheet(wb: Workbook, net: Network): void {
+  const ws = wb.addWorksheet(NETWORK_SHEET.name);
+  ws.addRow(NETWORK_SHEET.columns.map((c) => c.header));
+  const busType = lookupNetworkAttr(net, 'BusType');
+  const baudrate = lookupNetworkAttr(net, 'Baudrate');
+  const dbName = lookupNetworkAttr(net, 'DBName');
+  ws.addRow([
+    net.version,
+    busType ?? '',
+    baudrate ?? '',
+    dbName ?? '',
+  ]);
+}
+
+function lookupNetworkAttr(net: Network, name: string): string | number | undefined {
+  const a = net.attributeAssignments.find(
+    (x) => x.name === name && x.target.kind === 'network',
+  );
+  return a?.value;
+}
+
+/** Emit the AttributeDef sheet: one row per AttributeDef, plus the
+ *  well-known defs that the DBC build path auto-injects (NmStationAddress
+ *  for nodes with addresses) so the xlsx round-trip is symmetric. */
+function writeAttributeDefsSheet(wb: Workbook, net: Network): void {
+  const ws = wb.addWorksheet(ATTRIBUTE_DEFS_SHEET.name);
+  ws.addRow(ATTRIBUTE_DEFS_SHEET.columns.map((c) => c.header));
+  const declared = new Set(net.attributeDefs.map((d) => d.name));
+  if (
+    !declared.has('NmStationAddress') &&
+    net.nodes.some((n) => n.address !== undefined)
+  ) {
+    ws.addRow(
+      ATTRIBUTE_DEFS_SHEET.columns.map((c) =>
+        resolveAttributeDefColumn(
+          {
+            name: 'NmStationAddress',
+            target: 'node',
+            type: { kind: 'int', min: 0, max: 255 },
+            defaultValue: 0,
+          },
+          c.field,
+        ),
+      ),
+    );
+  }
+  for (const def of net.attributeDefs) {
+    ws.addRow(
+      ATTRIBUTE_DEFS_SHEET.columns.map((c) => resolveAttributeDefColumn(def, c.field)),
+    );
+  }
+}
+
+function resolveAttributeDefColumn(
+  def: Network['attributeDefs'][number],
+  field: string,
+): string | number {
+  switch (field) {
+    case 'name':
+      return def.name;
+    case 'target':
+      return def.target;
+    case 'type':
+      return def.type.kind;
+    case 'min':
+      if (def.type.kind === 'int' || def.type.kind === 'hex' || def.type.kind === 'float') {
+        return def.type.min;
+      }
+      return '';
+    case 'max':
+      if (def.type.kind === 'int' || def.type.kind === 'hex' || def.type.kind === 'float') {
+        return def.type.max;
+      }
+      return '';
+    case 'values':
+      if (def.type.kind === 'enum') {
+        return def.type.values.map((v) => `"${v}"`).join(',');
+      }
+      return '';
+    case 'default':
+      return def.defaultValue;
+    default:
+      return '';
+  }
+}
+
+/** Emit the AttributeAssignment sheet: one row per AttributeAssignment. */
+function writeAttributeAssignmentsSheet(wb: Workbook, net: Network): void {
+  const ws = wb.addWorksheet(ATTRIBUTE_ASSIGNMENTS_SHEET.name);
+  ws.addRow(ATTRIBUTE_ASSIGNMENTS_SHEET.columns.map((c) => c.header));
+  for (const a of net.attributeAssignments) {
+    ws.addRow(
+      ATTRIBUTE_ASSIGNMENTS_SHEET.columns.map((c) => resolveAttributeAssignmentColumn(a, c.field)),
+    );
+  }
+}
+
+function resolveAttributeAssignmentColumn(
+  a: Network['attributeAssignments'][number],
+  field: string,
+): string {
+  switch (field) {
+    case 'name':
+      return a.name;
+    case 'targetKind':
+      return a.target.kind;
+    case 'targetRef':
+      if (a.target.kind === 'network') return '';
+      if (a.target.kind === 'message') return `0x${a.target.messageId.toString(16).toUpperCase()}`;
+      if (a.target.kind === 'signal') return `0x${a.target.messageId.toString(16).toUpperCase()}|${a.target.signalName}`;
+      return a.target.nodeName;
+    case 'value':
+      return String(a.value);
+    default:
+      return '';
+  }
+}
+
+/** Emit the MuxExtension sheet: one row per (messageId, signalName, values). */
+function writeMuxExtensionsSheet(wb: Workbook, net: Network): void {
+  const ws = wb.addWorksheet(MUX_EXTENSIONS_SHEET.name);
+  ws.addRow(MUX_EXTENSIONS_SHEET.columns.map((c) => c.header));
+  for (const m of net.messages) {
+    if (m.muxExtensions) {
+      for (const [sigName, values] of m.muxExtensions) {
+        ws.addRow([formatHexId(m.id), sigName, values.join(' ')]);
+      }
+    }
+  }
 }
 
 /** Emit the ValueTable sheet: one row per VT (name + empty comment). */

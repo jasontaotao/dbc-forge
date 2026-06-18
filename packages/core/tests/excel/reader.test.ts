@@ -222,20 +222,26 @@ describe('excel reader — attribute columns', () => {
       ],
     });
     const net = await parseExcelAsync(buf);
-    expect(net.attributeAssignments).toHaveLength(2);
-    expect(net.attributeAssignments[0]).toEqual({
+    // Phase 9.5: the reader also injects a NmStationAddress assignment for
+    // the node that has a Node Address. Filter to message-level only so
+    // this test stays focused on the message attribute wiring.
+    const msgAssignments = net.attributeAssignments.filter(
+      (a) => a.target.kind === 'message',
+    );
+    expect(msgAssignments).toHaveLength(2);
+    expect(msgAssignments[0]).toEqual({
       name: 'GenMsgCycleTime',
       target: { kind: 'message', messageId: 0x100 },
       value: 100,
     });
-    expect(net.attributeAssignments[1]).toEqual({
+    expect(msgAssignments[1]).toEqual({
       name: 'GenMsgSendType',
       target: { kind: 'message', messageId: 0x100 },
       value: 'Cyclic',
     });
   });
 
-  it('does not create assignments when attribute columns are blank', async () => {
+  it('does not create message-level assignments when attribute columns are blank', async () => {
     const buf = await buildBuffer({
       Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
       Message: [
@@ -247,7 +253,10 @@ describe('excel reader — attribute columns', () => {
       ],
     });
     const net = await parseExcelAsync(buf);
-    expect(net.attributeAssignments).toHaveLength(0);
+    const msgAssignments = net.attributeAssignments.filter(
+      (a) => a.target.kind === 'message',
+    );
+    expect(msgAssignments).toHaveLength(0);
   });
 });
 
@@ -318,7 +327,9 @@ describe('excel reader — full integration', () => {
     expect(net.messages[0]?.signals).toHaveLength(2);
     expect(net.messages[1]?.signals).toHaveLength(2);
     expect(net.messages[1]?.signals[0]?.multiplexed.kind).toBe('Multiplexor');
-    // attribute wiring from Cycle Time / Send Type
-    expect(net.attributeAssignments).toHaveLength(4);
+    // attribute wiring from Cycle Time / Send Type (4) + NmStationAddress
+    // (one per node with an address = 3) = 7. The Phase 9.5 reader injects
+    // NmStationAddress to keep the DBC round-trip symmetric.
+    expect(net.attributeAssignments).toHaveLength(7);
   });
 });

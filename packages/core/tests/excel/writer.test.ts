@@ -181,10 +181,10 @@ describe('excel writer — Signals sheet', () => {
     expect(rows![1]?.[7]).toBe('1'); // Byte Order (little-endian → 1)
     expect(rows![1]?.[8]).toBe('+'); // Value Type
     expect(rows![1]?.[9]).toBe('0.1'); // Factor
-    expect(rows![1]?.[12]).toBe('0'); // Min
-    expect(rows![1]?.[13]).toBe('6553.5'); // Max
-    expect(rows![1]?.[14]).toBe('km/h'); // Unit
-    expect(rows![1]?.[16]).toBe('BCM'); // Receivers
+    expect(rows![1]?.[11]).toBe('0'); // Min
+    expect(rows![1]?.[12]).toBe('6553.5'); // Max
+    expect(rows![1]?.[13]).toBe('km/h'); // Unit
+    expect(rows![1]?.[15]).toBe('BCM'); // Receivers
   });
 
   it('encodes Multiplexor signal correctly', async () => {

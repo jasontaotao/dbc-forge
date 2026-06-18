@@ -494,6 +494,25 @@ describe('excel reader — 29-bit IDs + malformed xlsx', () => {
   it('throws IOError on malformed xlsx', async () => {
     await expect(parseExcelAsync(Buffer.from('not a real xlsx file'))).rejects.toThrow();
   });
+
+  it('tolerates Vector private IDs >0x1FFFFFFF (round-trip with parser)', async () => {
+    // Regression: reader used to hard-reject any id >0x1FFFFFFF at parse
+    // time, which made DBC files with Vector private ID spaces (e.g.
+    // 0xC0000000, J1939 extended) impossible to round-trip. The bound is
+    // now enforced by `validate/rules/message-id-range` instead.
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
+        ['J1939Msg', '0xC0000000', '8', 'ECM'],
+        ['VectorInternal', '0x98FEEC27', '8', 'ECM'],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.messages).toHaveLength(2);
+    expect(net.messages[0]?.id).toBe(0xc0000000);
+    expect(net.messages[1]?.id).toBe(0x98feec27);
+  });
 });
 
 describe('excel reader — full integration', () => {

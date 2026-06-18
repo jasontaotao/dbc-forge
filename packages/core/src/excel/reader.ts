@@ -189,14 +189,17 @@ function readMessagesSheet(ws: Worksheet, net: Network): Network {
     if (id === undefined) {
       throw new ParseError(`bad message id: ${idStr}`, { line: 2, column: 1 });
     }
-    if (id < 0 || id > 0x1fffffff) {
-      throw new ParseError(`message id out of range: 0x${id.toString(16)}`, {
-        line: 2,
-        column: 1,
-      });
-    }
+    // Out-of-range message IDs (>0x1FFFFFFF) are tolerated at the reader
+    // level and surfaced by `validate/rules/message-id-range`. This keeps
+    // the reader symmetric with the DBC parser (which accepts any u32 id)
+    // and lets round-trip work for Vector private ID spaces like J1939 /
+    // extended CAN. The strict 29-bit bound is enforced by validation, not
+    // by parse failure.
     const dlc = Number(row['dlc']);
-    if (dlc < 0 || dlc > 8) {
+    // Out-of-range DLC (>8) is tolerated at the reader level and surfaced
+    // by `validate/rules/message-dlc-range`. Symmetric with message id:
+    // DBC parser accepts any dlc, so the round-trip must too.
+    if (dlc < 0) {
       throw new ParseError(`dlc out of range: ${dlc}`, { line: 2, column: 1 });
     }
     const transmitter = String(row['transmitter'] ?? '').trim();

@@ -86,6 +86,21 @@ export function addAttributeAssignment(
   return { ...net, attributeAssignments: [...net.attributeAssignments, a] };
 }
 
+export function addAttributeDef(net: Network, def: AttributeDef): Network {
+  return { ...net, attributeDefs: [...net.attributeDefs, def] };
+}
+
+export function addRelationAttributeAssignment(
+  net: Network,
+  a: RelationAttributeAssignment,
+): Network {
+  return { ...net, relationAttributeAssignments: [...net.relationAttributeAssignments, a] };
+}
+
+export function addRelationAttributeDef(net: Network, def: RelationAttributeDef): Network {
+  return { ...net, relationAttributeDefs: [...net.relationAttributeDefs, def] };
+}
+
 export function appendValueTableEntry(net: Network, name: string, entry: ValueTableEntry): Network {
   return {
     ...net,

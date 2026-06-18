@@ -11,7 +11,7 @@ describe('Message', () => {
   });
 
   it('createMessage with 29-bit id sets isExtended', () => {
-    const m = createMessage({ id: 0x18FF1234, name: 'X', dlc: 8, transmitter: 'GW' });
+    const m = createMessage({ id: 0x18ff1234, name: 'X', dlc: 8, transmitter: 'GW' });
     expect(m.isExtended).toBe(true);
   });
 });

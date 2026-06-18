@@ -23,7 +23,15 @@
  * the map first.
  */
 
-export type ColumnKind = 'string' | 'number' | 'enum' | 'signed' | 'unsigned' | 'float' | 'hex' | 'bool';
+export type ColumnKind =
+  | 'string'
+  | 'number'
+  | 'enum'
+  | 'signed'
+  | 'unsigned'
+  | 'float'
+  | 'hex'
+  | 'bool';
 
 export interface ColumnMapping {
   readonly header: string;

@@ -3,8 +3,10 @@
 // Network so consumers can safely share and snapshot it.
 
 import type {
-  AttributeAssignment, AttributeDef,
-  RelationAttributeAssignment, RelationAttributeDef,
+  AttributeAssignment,
+  AttributeDef,
+  RelationAttributeAssignment,
+  RelationAttributeDef,
 } from './attributes/attribute.js';
 import type { Message } from './message.js';
 import type { Node } from './node.js';
@@ -55,7 +57,8 @@ export function createNetwork(args: { version: string }): Network {
 
 export function addMessage(
   net: Network,
-  m: Omit<Message, 'isExtended' | 'additionalTransmitters' | 'signals'> & Partial<Pick<Message, 'additionalTransmitters' | 'signals'>>,
+  m: Omit<Message, 'isExtended' | 'additionalTransmitters' | 'signals'> &
+    Partial<Pick<Message, 'additionalTransmitters' | 'signals'>>,
 ): Network {
   return {
     ...net,
@@ -79,10 +82,7 @@ export function addValueTable(net: Network, vt: ValueTable): Network {
   return { ...net, valueTables: [...net.valueTables, vt] };
 }
 
-export function addAttributeAssignment(
-  net: Network,
-  a: AttributeAssignment,
-): Network {
+export function addAttributeAssignment(net: Network, a: AttributeAssignment): Network {
   return { ...net, attributeAssignments: [...net.attributeAssignments, a] };
 }
 
@@ -105,9 +105,7 @@ export function appendValueTableEntry(net: Network, name: string, entry: ValueTa
   return {
     ...net,
     valueTables: net.valueTables.map((vt) =>
-      vt.name === name
-        ? { ...vt, entries: [...vt.entries, entry] }
-        : vt,
+      vt.name === name ? { ...vt, entries: [...vt.entries, entry] } : vt,
     ),
   };
 }

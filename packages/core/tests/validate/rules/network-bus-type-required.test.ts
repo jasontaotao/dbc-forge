@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  createNetwork,
-  addAttributeAssignment,
-} from '../../../src/model/network.js';
+import { createNetwork, addAttributeAssignment } from '../../../src/model/network.js';
 import { networkBusTypeRequired } from '../../../src/validate/rules/network-bus-type-required.js';
 
 describe('network-bus-type-required', () => {

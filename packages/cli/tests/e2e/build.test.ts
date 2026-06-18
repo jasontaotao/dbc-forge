@@ -77,11 +77,9 @@ describe('cli build', () => {
     // Use --no-validate: the minimal xlsx fixture doesn't carry BusType/Baudrate
     // attributes, which the strict build-mode validator requires. Pure round-trip
     // behavior is exercised; validation is covered by the validate.test.ts suite.
-    const result = await execa(
-      'node',
-      [CLI, 'build', xlsx, '-o', dbc, '--no-validate'],
-      { reject: false },
-    );
+    const result = await execa('node', [CLI, 'build', xlsx, '-o', dbc, '--no-validate'], {
+      reject: false,
+    });
     expect(result.exitCode).toBe(0);
     const out = await readFile(dbc, 'utf8');
     expect(out).toMatch(/^VERSION /);
@@ -108,11 +106,9 @@ describe('cli build', () => {
     const xlsx = join(dir, 'in.xlsx');
     const dbc = join(dir, 'out.dbc');
     await makeMinimalXlsx(xlsx);
-    const result = await execa(
-      'node',
-      [CLI, 'build', xlsx, '-o', dbc, '--no-validate'],
-      { reject: false },
-    );
+    const result = await execa('node', [CLI, 'build', xlsx, '-o', dbc, '--no-validate'], {
+      reject: false,
+    });
     expect(result.exitCode).toBe(0);
     const out = await readFile(dbc, 'utf8');
     expect(out).toContain('BU_: ECM');

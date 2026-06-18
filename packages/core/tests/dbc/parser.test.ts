@@ -33,7 +33,10 @@ VAL_TABLE_ OffOn 0 "Off" 1 "On" ;
 `);
     expect(net.valueTables).toHaveLength(1);
     expect(net.valueTables[0]?.name).toBe('OffOn');
-    expect(net.valueTables[0]?.entries).toEqual([{ raw: 0, name: 'Off' }, { raw: 1, name: 'On' }]);
+    expect(net.valueTables[0]?.entries).toEqual([
+      { raw: 0, name: 'Off' },
+      { raw: 1, name: 'On' },
+    ]);
   });
 });
 
@@ -151,7 +154,9 @@ VAL_ 256 Status 0 "Off" 1 "On" 2 "Auto" ;
     expect(sig?.valueTable).toBeDefined();
     const vt = net.valueTables.find((v) => v.name === sig?.valueTable);
     expect(vt?.entries).toEqual([
-      { raw: 0, name: 'Off' }, { raw: 1, name: 'On' }, { raw: 2, name: 'Auto' },
+      { raw: 0, name: 'Off' },
+      { raw: 1, name: 'On' },
+      { raw: 2, name: 'Auto' },
     ]);
   });
 });

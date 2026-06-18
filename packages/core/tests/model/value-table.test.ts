@@ -6,7 +6,10 @@ describe('ValueTable', () => {
   it('createValueTable stores name + entries', () => {
     const vt = createValueTable({
       name: 'VT_OffOn',
-      entries: [{ raw: 0, name: 'Off' }, { raw: 1, name: 'On' }],
+      entries: [
+        { raw: 0, name: 'Off' },
+        { raw: 1, name: 'On' },
+      ],
     });
     expect(vt.name).toBe('VT_OffOn');
     expect(vt.entries).toHaveLength(2);

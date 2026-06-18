@@ -30,24 +30,49 @@ describe('deepEqualNetwork', () => {
   });
 
   it('returns true when messages match (sorted by id)', () => {
-    let a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
+    let a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+    });
     a = addMessage(a, { id: 0x200, name: 'M2', dlc: 4, transmitter: 'N' });
-    let b = addMessage(createNetwork({ version: '1.0' }), { id: 0x200, name: 'M2', dlc: 4, transmitter: 'N' });
+    let b = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x200,
+      name: 'M2',
+      dlc: 4,
+      transmitter: 'N',
+    });
     b = addMessage(b, { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
     expect(deepEqualNetwork(a, b)).toBe(true);
   });
 
   it('normalizes empty muxExtensions to absent', () => {
     const sig = createSignal({
-      name: 'S', startBit: 0, length: 8, byteOrder: 'little-endian',
-      valueType: 'unsigned', factor: 1, offset: 0, min: 0, max: 255,
-      unit: '', receivers: [],
+      name: 'S',
+      startBit: 0,
+      length: 8,
+      byteOrder: 'little-endian',
+      valueType: 'unsigned',
+      factor: 1,
+      offset: 0,
+      min: 0,
+      max: 255,
+      unit: '',
+      receivers: [],
     });
     const a = addMessage(createNetwork({ version: '1.0' }), {
-      id: 0x100, name: 'M', dlc: 8, transmitter: 'N', signals: [sig],
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+      signals: [sig],
     });
     const b = addMessage(createNetwork({ version: '1.0' }), {
-      id: 0x100, name: 'M', dlc: 8, transmitter: 'N',
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
       signals: [sig],
       muxExtensions: new Map(),
     });
@@ -56,17 +81,33 @@ describe('deepEqualNetwork', () => {
 
   it('detects matching muxExtensions', () => {
     const sig = createSignal({
-      name: 'S', startBit: 0, length: 8, byteOrder: 'little-endian',
-      valueType: 'unsigned', factor: 1, offset: 0, min: 0, max: 255,
-      unit: '', receivers: [],
+      name: 'S',
+      startBit: 0,
+      length: 8,
+      byteOrder: 'little-endian',
+      valueType: 'unsigned',
+      factor: 1,
+      offset: 0,
+      min: 0,
+      max: 255,
+      unit: '',
+      receivers: [],
     });
     const map = new Map([['S', [0, 1]]]);
     const a = addMessage(createNetwork({ version: '1.0' }), {
-      id: 0x100, name: 'M', dlc: 8, transmitter: 'N', signals: [sig],
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+      signals: [sig],
       muxExtensions: map,
     });
     const b = addMessage(createNetwork({ version: '1.0' }), {
-      id: 0x100, name: 'M', dlc: 8, transmitter: 'N', signals: [sig],
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+      signals: [sig],
       muxExtensions: new Map([['S', [0, 1]]]),
     });
     expect(deepEqualNetwork(a, b)).toBe(true);

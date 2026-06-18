@@ -26,7 +26,12 @@ describe('renderDiff', () => {
   });
 
   it('renders message-removed change with [-] prefix', () => {
-    const a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
+    const a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+    });
     const b = createNetwork({ version: '1.0' });
     const report = diff(a, b);
     const text = renderDiff(report, 'text');
@@ -37,14 +42,58 @@ describe('renderDiff', () => {
   it('renders signal-added, signal-removed, and signal-changed', () => {
     const base = createNetwork({ version: '1.0' });
     const a = addMessage(base, {
-      id: 0x100, name: 'M', dlc: 8, transmitter: 'N',
-      signals: [createSignal({ name: 'S1', startBit: 0, length: 8, byteOrder: 'little-endian', valueType: 'unsigned', factor: 1, offset: 0, min: 0, max: 255, unit: '', receivers: [] })],
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+      signals: [
+        createSignal({
+          name: 'S1',
+          startBit: 0,
+          length: 8,
+          byteOrder: 'little-endian',
+          valueType: 'unsigned',
+          factor: 1,
+          offset: 0,
+          min: 0,
+          max: 255,
+          unit: '',
+          receivers: [],
+        }),
+      ],
     });
     const b = addMessage(a, {
-      id: 0x100, name: 'M', dlc: 8, transmitter: 'N',
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
       signals: [
-        createSignal({ name: 'S1', startBit: 0, length: 8, byteOrder: 'little-endian', valueType: 'unsigned', factor: 2, offset: 0, min: 0, max: 255, unit: '', receivers: [] }),
-        createSignal({ name: 'S2', startBit: 8, length: 8, byteOrder: 'little-endian', valueType: 'unsigned', factor: 1, offset: 0, min: 0, max: 255, unit: '', receivers: [] }),
+        createSignal({
+          name: 'S1',
+          startBit: 0,
+          length: 8,
+          byteOrder: 'little-endian',
+          valueType: 'unsigned',
+          factor: 2,
+          offset: 0,
+          min: 0,
+          max: 255,
+          unit: '',
+          receivers: [],
+        }),
+        createSignal({
+          name: 'S2',
+          startBit: 8,
+          length: 8,
+          byteOrder: 'little-endian',
+          valueType: 'unsigned',
+          factor: 1,
+          offset: 0,
+          min: 0,
+          max: 255,
+          unit: '',
+          receivers: [],
+        }),
       ],
     });
     const report = diff(a, b);
@@ -65,8 +114,18 @@ describe('renderDiff', () => {
   });
 
   it('renders attribute def added/removed/changed', () => {
-    const a = addAttributeDef(createNetwork({ version: '1.0' }), { name: 'X', target: 'message', type: { kind: 'int', min: 0, max: 10 }, defaultValue: 0 });
-    const b = addAttributeDef(createNetwork({ version: '1.0' }), { name: 'Y', target: 'message', type: { kind: 'int', min: 0, max: 10 }, defaultValue: 0 });
+    const a = addAttributeDef(createNetwork({ version: '1.0' }), {
+      name: 'X',
+      target: 'message',
+      type: { kind: 'int', min: 0, max: 10 },
+      defaultValue: 0,
+    });
+    const b = addAttributeDef(createNetwork({ version: '1.0' }), {
+      name: 'Y',
+      target: 'message',
+      type: { kind: 'int', min: 0, max: 10 },
+      defaultValue: 0,
+    });
     const report = diff(a, b);
     const text = renderDiff(report, 'text');
     expect(text).toContain('AttributeDef added');
@@ -74,8 +133,17 @@ describe('renderDiff', () => {
   });
 
   it('renders attribute value changed for message target', () => {
-    const a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
-    const b = addAttributeAssignment(a, { name: 'GenMsgCycleTime', target: { kind: 'message', messageId: 0x100 }, value: 100 });
+    const a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+    });
+    const b = addAttributeAssignment(a, {
+      name: 'GenMsgCycleTime',
+      target: { kind: 'message', messageId: 0x100 },
+      value: 100,
+    });
     const report = diff(a, b);
     const text = renderDiff(report, 'text');
     expect(text).toContain('Attribute value changed');
@@ -91,7 +159,12 @@ describe('renderDiff', () => {
   });
 
   it('renders message-changed with [~] prefix and field diffs', () => {
-    const a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
+    const a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+    });
     const b = addMessage(a, { id: 0x100, name: 'M', dlc: 4, transmitter: 'N' });
     const report = diff(a, b);
     const text = renderDiff(report, 'text');
@@ -101,10 +174,46 @@ describe('renderDiff', () => {
   });
 
   it('renders signal-renamed? with [?] prefix', () => {
-    const sigA = createSignal({ name: 'S1', startBit: 0, length: 8, byteOrder: 'little-endian', valueType: 'unsigned', factor: 1, offset: 0, min: 0, max: 255, unit: '', receivers: [] });
-    const sigB = createSignal({ name: 'S2', startBit: 0, length: 8, byteOrder: 'little-endian', valueType: 'unsigned', factor: 1, offset: 0, min: 0, max: 255, unit: '', receivers: [] });
-    const a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N', signals: [sigA] });
-    const b = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N', signals: [sigB] });
+    const sigA = createSignal({
+      name: 'S1',
+      startBit: 0,
+      length: 8,
+      byteOrder: 'little-endian',
+      valueType: 'unsigned',
+      factor: 1,
+      offset: 0,
+      min: 0,
+      max: 255,
+      unit: '',
+      receivers: [],
+    });
+    const sigB = createSignal({
+      name: 'S2',
+      startBit: 0,
+      length: 8,
+      byteOrder: 'little-endian',
+      valueType: 'unsigned',
+      factor: 1,
+      offset: 0,
+      min: 0,
+      max: 255,
+      unit: '',
+      receivers: [],
+    });
+    const a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+      signals: [sigA],
+    });
+    const b = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+      signals: [sigB],
+    });
     const report = diff(a, b);
     const text = renderDiff(report, 'text');
     expect(text).toContain('[?]');
@@ -112,8 +221,18 @@ describe('renderDiff', () => {
   });
 
   it('formats number, string, and object values in field diffs', () => {
-    const a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
-    const b = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M2', dlc: 8, transmitter: 'N' });
+    const a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+    });
+    const b = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M2',
+      dlc: 8,
+      transmitter: 'N',
+    });
     const report = diff(a, b);
     const text = renderDiff(report, 'text');
     expect(text).toContain('"M" → "M2"');

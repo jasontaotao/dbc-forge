@@ -29,10 +29,19 @@ export const attrDefMissing = {
     }
     return issues;
   },
-  assignmentLocation(a: { target: { kind: string; messageId?: number; signalName?: string; nodeName?: string } }): { messageId?: number; signalName?: string; nodeName?: string } {
-    if (a.target.kind === 'message' && a.target.messageId !== undefined) return { messageId: a.target.messageId };
-    if (a.target.kind === 'signal' && a.target.messageId !== undefined && a.target.signalName !== undefined) return { messageId: a.target.messageId, signalName: a.target.signalName };
-    if (a.target.kind === 'node' && a.target.nodeName !== undefined) return { nodeName: a.target.nodeName };
+  assignmentLocation(a: {
+    target: { kind: string; messageId?: number; signalName?: string; nodeName?: string };
+  }): { messageId?: number; signalName?: string; nodeName?: string } {
+    if (a.target.kind === 'message' && a.target.messageId !== undefined)
+      return { messageId: a.target.messageId };
+    if (
+      a.target.kind === 'signal' &&
+      a.target.messageId !== undefined &&
+      a.target.signalName !== undefined
+    )
+      return { messageId: a.target.messageId, signalName: a.target.signalName };
+    if (a.target.kind === 'node' && a.target.nodeName !== undefined)
+      return { nodeName: a.target.nodeName };
     return {};
   },
 };

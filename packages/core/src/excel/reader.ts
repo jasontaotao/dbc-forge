@@ -152,9 +152,7 @@ function readNodesSheet(ws: Worksheet, net: Network): Network {
 
     const addrCell = row['address'];
     const address =
-      addrCell !== undefined && addrCell !== null && addrCell !== ''
-        ? Number(addrCell)
-        : undefined;
+      addrCell !== undefined && addrCell !== null && addrCell !== '' ? Number(addrCell) : undefined;
 
     const commentCell = row['comment'];
     const comment = commentCell ? String(commentCell) : undefined;
@@ -326,13 +324,15 @@ function rowToSignal(r: Record<string, unknown>): Signal {
     multiplexed = { kind: 'Multiplexor' };
   } else if (mux === 'Muxed') {
     multiplexed = { kind: 'Muxed', value: muxValue };
-  } else if (mux === 'Extended' || (muxExtended && muxValueCell !== undefined && muxValueCell !== '')) {
+  } else if (
+    mux === 'Extended' ||
+    (muxExtended && muxValueCell !== undefined && muxValueCell !== '')
+  ) {
     multiplexed = { kind: 'ExtendedMuxed', value: muxValue };
   }
 
   const bo = String(r['byteOrder'] ?? '1').trim();
-  const byteOrder: ByteOrder =
-    bo === '1' || bo === 'Intel' ? 'little-endian' : 'big-endian';
+  const byteOrder: ByteOrder = bo === '1' || bo === 'Intel' ? 'little-endian' : 'big-endian';
 
   const vt = String(r['valueType'] ?? '+').trim();
   const valueType: ValueType =
@@ -377,11 +377,7 @@ function rowToSignal(r: Record<string, unknown>): Signal {
   });
 }
 
-function updateMessageSignals(
-  net: Network,
-  messageIdx: number,
-  signals: Signal[],
-): Network {
+function updateMessageSignals(net: Network, messageIdx: number, signals: Signal[]): Network {
   const orig = net.messages[messageIdx];
   if (!orig) return net;
   const updated = createMessage({ ...orig, signals });
@@ -400,10 +396,7 @@ function parseHexOrDec(s: string): number | undefined {
   return parseInt(trimmed, 10);
 }
 
-function readSheetRows(
-  ws: Worksheet,
-  sheet: SheetMapping,
-): Record<string, unknown>[] {
+function readSheetRows(ws: Worksheet, sheet: SheetMapping): Record<string, unknown>[] {
   const headerRow = ws.getRow(1);
   const headers: string[] = [];
   headerRow.eachCell((cell, colNumber) => {
@@ -414,9 +407,7 @@ function readSheetRows(
   // Missing columns yield undefined fields, which the per-sheet readers
   // treat as optional. The column-map remains the schema; sheets with
   // extra or missing columns are tolerated.
-  const presentColumns = sheet.columns.filter(
-    (c) => headers.indexOf(c.header) >= 0,
-  );
+  const presentColumns = sheet.columns.filter((c) => headers.indexOf(c.header) >= 0);
 
   const out: Record<string, unknown>[] = [];
   ws.eachRow((row, rowNumber) => {
@@ -515,9 +506,12 @@ function readAttributeDefsSheet(ws: Worksheet, net: Network): Network {
     const valuesStr = String(r['values'] ?? '').trim();
     const defaultStr = String(r['default'] ?? '');
     const target: AttrTarget =
-      targetStr === 'message' ? 'message'
-        : targetStr === 'signal' ? 'signal'
-          : targetStr === 'node' ? 'node'
+      targetStr === 'message'
+        ? 'message'
+        : targetStr === 'signal'
+          ? 'signal'
+          : targetStr === 'node'
+            ? 'node'
             : 'network';
     let type: AttrType;
     if (typeStr === 'int') type = { kind: 'int', min, max };
@@ -593,7 +587,9 @@ function readMuxExtensionsSheet(ws: Worksheet, net: Network): Network {
     if (idx < 0) continue;
     const orig = next.messages[idx];
     if (!orig) continue;
-    const existing = orig.muxExtensions ? new Map(orig.muxExtensions) : new Map<string, readonly number[]>();
+    const existing = orig.muxExtensions
+      ? new Map(orig.muxExtensions)
+      : new Map<string, readonly number[]>();
     existing.set(sigName, muxValues);
     const updated = createMessage({ ...orig, muxExtensions: existing });
     const newMessages = [...next.messages];

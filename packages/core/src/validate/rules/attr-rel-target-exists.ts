@@ -18,7 +18,10 @@ export const attrRelTargetExists = {
     const issues: ValidationIssue[] = [];
     for (const a of net.relationAttributeAssignments) {
       const t = a.target;
-      const loc: { messageId?: number; signalName?: string; nodeName?: string } = { nodeName: t.nodeName, messageId: t.messageId };
+      const loc: { messageId?: number; signalName?: string; nodeName?: string } = {
+        nodeName: t.nodeName,
+        messageId: t.messageId,
+      };
       if (!nodeNames.has(t.nodeName)) {
         issues.push({
           rule: this.id,

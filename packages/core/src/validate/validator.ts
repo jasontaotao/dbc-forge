@@ -55,19 +55,45 @@ export interface ValidationResult {
 }
 
 const RULES = [
-  networkBusTypeRequired, networkBaudrateRequired,
-  nodeNameFormat, nodeNameDuplicate, nodeUnreferenced,
-  messageIdDuplicate, messageIdRange, messageDlcRange, messageNameFormat, messageNameDuplicate, messageTransmitterExists, messageCycleTimeRequired,
-  signalBitRange, signalLengthPositive, signalOverlap, signalByteOrderValid, signalValueTypeValid, signalFactorNonzero, signalPhysicalRange, signalNameFormat, signalNameDuplicateInMessage, signalReceiverExists, signalUnitWhenFactor, signalFloatLength,
-  muxSwitchExactlyOne, muxSwitchRequiredWhenMux, muxMuxedValueInRange, muxExtendedConsistency,
-  vtDuplicateRawValue, vtSignalBoundExists, vtValueInSignalRange,
-  attrDefMissing, attrValueTypeMismatch, attrValueRange, attrTargetExists, attrRelTargetExists,
+  networkBusTypeRequired,
+  networkBaudrateRequired,
+  nodeNameFormat,
+  nodeNameDuplicate,
+  nodeUnreferenced,
+  messageIdDuplicate,
+  messageIdRange,
+  messageDlcRange,
+  messageNameFormat,
+  messageNameDuplicate,
+  messageTransmitterExists,
+  messageCycleTimeRequired,
+  signalBitRange,
+  signalLengthPositive,
+  signalOverlap,
+  signalByteOrderValid,
+  signalValueTypeValid,
+  signalFactorNonzero,
+  signalPhysicalRange,
+  signalNameFormat,
+  signalNameDuplicateInMessage,
+  signalReceiverExists,
+  signalUnitWhenFactor,
+  signalFloatLength,
+  muxSwitchExactlyOne,
+  muxSwitchRequiredWhenMux,
+  muxMuxedValueInRange,
+  muxExtendedConsistency,
+  vtDuplicateRawValue,
+  vtSignalBoundExists,
+  vtValueInSignalRange,
+  attrDefMissing,
+  attrValueTypeMismatch,
+  attrValueRange,
+  attrTargetExists,
+  attrRelTargetExists,
 ] as const;
 
-export function validate(
-  net: Network,
-  opts: { mode?: ValidationMode } = {},
-): ValidationResult {
+export function validate(net: Network, opts: { mode?: ValidationMode } = {}): ValidationResult {
   const mode = opts.mode ?? 'build';
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];

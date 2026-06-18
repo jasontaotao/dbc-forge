@@ -15,8 +15,16 @@ describe('message-cycle-time-required', () => {
     let net = createNetwork({ version: '1.0' });
     net = addNode(net, createNode({ name: 'BCM' }));
     net = addMessage(net, createMessage({ id: 1, name: 'M', dlc: 8, transmitter: 'BCM' }));
-    net = addAttributeAssignment(net, { name: 'GenMsgSendType', target: { kind: 'message', messageId: 1 }, value: 'Cyclic' });
-    net = addAttributeAssignment(net, { name: 'GenMsgCycleTime', target: { kind: 'message', messageId: 1 }, value: 100 });
+    net = addAttributeAssignment(net, {
+      name: 'GenMsgSendType',
+      target: { kind: 'message', messageId: 1 },
+      value: 'Cyclic',
+    });
+    net = addAttributeAssignment(net, {
+      name: 'GenMsgCycleTime',
+      target: { kind: 'message', messageId: 1 },
+      value: 100,
+    });
     expect(messageCycleTimeRequired.check(net)).toHaveLength(0);
   });
 
@@ -24,8 +32,16 @@ describe('message-cycle-time-required', () => {
     let net = createNetwork({ version: '1.0' });
     net = addNode(net, createNode({ name: 'BCM' }));
     net = addMessage(net, createMessage({ id: 1, name: 'M', dlc: 8, transmitter: 'BCM' }));
-    net = addAttributeAssignment(net, { name: 'GenMsgSendType', target: { kind: 'message', messageId: 1 }, value: 'Cyclic' });
-    net = addAttributeAssignment(net, { name: 'GenMsgCycleTime', target: { kind: 'message', messageId: 1 }, value: 0 });
+    net = addAttributeAssignment(net, {
+      name: 'GenMsgSendType',
+      target: { kind: 'message', messageId: 1 },
+      value: 'Cyclic',
+    });
+    net = addAttributeAssignment(net, {
+      name: 'GenMsgCycleTime',
+      target: { kind: 'message', messageId: 1 },
+      value: 0,
+    });
     const issues = messageCycleTimeRequired.check(net);
     expect(issues.length).toBeGreaterThan(0);
     expect(issues[0]!.rule).toBe('message.cycle-time-required');
@@ -36,7 +52,11 @@ describe('message-cycle-time-required', () => {
     let net = createNetwork({ version: '1.0' });
     net = addNode(net, createNode({ name: 'BCM' }));
     net = addMessage(net, createMessage({ id: 1, name: 'M', dlc: 8, transmitter: 'BCM' }));
-    net = addAttributeAssignment(net, { name: 'GenMsgSendType', target: { kind: 'message', messageId: 1 }, value: 'NotUsed' });
+    net = addAttributeAssignment(net, {
+      name: 'GenMsgSendType',
+      target: { kind: 'message', messageId: 1 },
+      value: 'NotUsed',
+    });
     expect(messageCycleTimeRequired.check(net)).toHaveLength(0);
   });
 });

@@ -48,7 +48,11 @@ function normalise(text: string): string {
     const trimmed = line.trimStart();
     let skip = false;
     for (const prefix of NON_DETERMINISTIC_PREFIXES) {
-      if (trimmed.startsWith(prefix + ' ') || trimmed === prefix || trimmed.startsWith(prefix + '"')) {
+      if (
+        trimmed.startsWith(prefix + ' ') ||
+        trimmed === prefix ||
+        trimmed.startsWith(prefix + '"')
+      ) {
         skip = true;
         break;
       }

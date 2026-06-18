@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  createNetwork,
-  addAttributeAssignment,
-} from '../../../src/model/network.js';
+import { createNetwork, addAttributeAssignment } from '../../../src/model/network.js';
 import { networkBaudrateRequired } from '../../../src/validate/rules/network-baudrate-required.js';
 
 describe('network-baudrate-required', () => {

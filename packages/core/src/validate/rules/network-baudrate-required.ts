@@ -8,13 +8,17 @@ export const networkBaudrateRequired = {
   id: 'network.baudrate-required',
   severity: 'error' as const,
   check(net: Network): ValidationIssue[] {
-    const has = net.attributeAssignments.some((a) => a.name === 'Baudrate' && a.target.kind === 'network');
+    const has = net.attributeAssignments.some(
+      (a) => a.name === 'Baudrate' && a.target.kind === 'network',
+    );
     if (has) return [];
-    return [{
-      rule: this.id,
-      severity: this.severity,
-      location: {},
-      message: '网络缺少 Baudrate 属性（必需，规定总线波特率）',
-    }];
+    return [
+      {
+        rule: this.id,
+        severity: this.severity,
+        location: {},
+        message: '网络缺少 Baudrate 属性（必需，规定总线波特率）',
+      },
+    ];
   },
 };

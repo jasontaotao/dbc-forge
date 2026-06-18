@@ -53,18 +53,11 @@ function writeNetworkSheet(wb: Workbook, net: Network): void {
   const busType = lookupNetworkAttr(net, 'BusType');
   const baudrate = lookupNetworkAttr(net, 'Baudrate');
   const dbName = lookupNetworkAttr(net, 'DBName');
-  ws.addRow([
-    net.version,
-    busType ?? '',
-    baudrate ?? '',
-    dbName ?? '',
-  ]);
+  ws.addRow([net.version, busType ?? '', baudrate ?? '', dbName ?? '']);
 }
 
 function lookupNetworkAttr(net: Network, name: string): string | number | undefined {
-  const a = net.attributeAssignments.find(
-    (x) => x.name === name && x.target.kind === 'network',
-  );
+  const a = net.attributeAssignments.find((x) => x.name === name && x.target.kind === 'network');
   return a?.value;
 }
 
@@ -75,10 +68,7 @@ function writeAttributeDefsSheet(wb: Workbook, net: Network): void {
   const ws = wb.addWorksheet(ATTRIBUTE_DEFS_SHEET.name);
   ws.addRow(ATTRIBUTE_DEFS_SHEET.columns.map((c) => c.header));
   const declared = new Set(net.attributeDefs.map((d) => d.name));
-  if (
-    !declared.has('NmStationAddress') &&
-    net.nodes.some((n) => n.address !== undefined)
-  ) {
+  if (!declared.has('NmStationAddress') && net.nodes.some((n) => n.address !== undefined)) {
     ws.addRow(
       ATTRIBUTE_DEFS_SHEET.columns.map((c) =>
         resolveAttributeDefColumn(
@@ -94,9 +84,7 @@ function writeAttributeDefsSheet(wb: Workbook, net: Network): void {
     );
   }
   for (const def of net.attributeDefs) {
-    ws.addRow(
-      ATTRIBUTE_DEFS_SHEET.columns.map((c) => resolveAttributeDefColumn(def, c.field)),
-    );
+    ws.addRow(ATTRIBUTE_DEFS_SHEET.columns.map((c) => resolveAttributeDefColumn(def, c.field)));
   }
 }
 
@@ -156,7 +144,8 @@ function resolveAttributeAssignmentColumn(
     case 'targetRef':
       if (a.target.kind === 'network') return '';
       if (a.target.kind === 'message') return `0x${a.target.messageId.toString(16).toUpperCase()}`;
-      if (a.target.kind === 'signal') return `0x${a.target.messageId.toString(16).toUpperCase()}|${a.target.signalName}`;
+      if (a.target.kind === 'signal')
+        return `0x${a.target.messageId.toString(16).toUpperCase()}|${a.target.signalName}`;
       return a.target.nodeName;
     case 'value':
       return String(a.value);
@@ -225,9 +214,7 @@ function writeMessagesSheet(wb: Workbook, net: Network): void {
   const ws = wb.addWorksheet(MESSAGES_SHEET.name);
   ws.addRow(MESSAGES_SHEET.columns.map((c) => c.header));
   for (const m of net.messages) {
-    ws.addRow(
-      MESSAGES_SHEET.columns.map((c) => resolveMessageColumn(net, m, c.field)),
-    );
+    ws.addRow(MESSAGES_SHEET.columns.map((c) => resolveMessageColumn(net, m, c.field)));
   }
 }
 
@@ -264,7 +251,11 @@ function resolveMessageColumn(
   }
 }
 
-function lookupMessageAttr(net: Network, messageId: number, name: string): string | number | undefined {
+function lookupMessageAttr(
+  net: Network,
+  messageId: number,
+  name: string,
+): string | number | undefined {
   const a = net.attributeAssignments.find(
     (x) => x.name === name && x.target.kind === 'message' && x.target.messageId === messageId,
   );
@@ -300,9 +291,7 @@ function writeSignalsSheet(wb: Workbook, net: Network): void {
   ws.addRow(SIGNALS_SHEET.columns.map((c) => c.header));
   for (const m of net.messages) {
     for (const s of m.signals) {
-      ws.addRow(
-        SIGNALS_SHEET.columns.map((c) => resolveSignalColumn(net, m.id, s, c.field)),
-      );
+      ws.addRow(SIGNALS_SHEET.columns.map((c) => resolveSignalColumn(net, m.id, s, c.field)));
     }
   }
 }

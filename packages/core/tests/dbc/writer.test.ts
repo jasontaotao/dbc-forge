@@ -155,7 +155,9 @@ BA_DEF_  BO_  "GenMsgSendType" ENUM  "Cyclic","NotUsed","NotDefined";
 BA_DEF_DEF_  "GenMsgSendType" "NotUsed";
 `);
     const out = writeDbc(net, { mode: 'extract' });
-    expect(out).toMatch(/BA_DEF_ {2}BO_ {2}"GenMsgSendType" ENUM {2}"Cyclic","NotUsed","NotDefined";/);
+    expect(out).toMatch(
+      /BA_DEF_ {2}BO_ {2}"GenMsgSendType" ENUM {2}"Cyclic","NotUsed","NotDefined";/,
+    );
   });
 
   it('emits STRING BA_DEF_', () => {

@@ -26,7 +26,9 @@ export const diffCommand = new Command('diff')
   .option('-o, --output <file>', 'write report to file (default: stdout)')
   .action(async (a: string, b: string, opts: DiffOptions) => {
     if (opts.format !== 'text' && opts.format !== 'json') {
-      throw new UsageError(`invalid --format: ${opts.format}`, { hint: 'use --format text or --format json' });
+      throw new UsageError(`invalid --format: ${opts.format}`, {
+        hint: 'use --format text or --format json',
+      });
     }
     let netA: Network;
     let netB: Network;

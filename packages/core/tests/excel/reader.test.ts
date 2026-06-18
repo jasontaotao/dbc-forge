@@ -60,7 +60,10 @@ describe('excel reader — Nodes sheet', () => {
 describe('excel reader — Messages sheet', () => {
   it('reads Messages sheet into Network.messages', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter', 'Comment'],
         ['Engine', '0x100', '8', 'ECM', 'Engine status frame'],
@@ -81,7 +84,10 @@ describe('excel reader — Messages sheet', () => {
 
   it('parses decimal message IDs', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
         ['M', '256', '8', 'ECM'],
@@ -95,19 +101,60 @@ describe('excel reader — Messages sheet', () => {
 describe('excel reader — Signals sheet', () => {
   it('reads plain signals', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', ''], ['BCM', '1', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+        ['BCM', '1', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
         ['M', '0x100', '8', 'ECM'],
       ],
       Signal: [
         [
-          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
-          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
-          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
-          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+          'Message Name',
+          'Signal Name',
+          'Multiplex',
+          'Mux Value',
+          'Mux Extended',
+          'Start Bit',
+          'Signal Length',
+          'Byte Order',
+          'Value Type',
+          'Factor',
+          'Offset',
+          'Minimum',
+          'Maximum',
+          'Unit',
+          'Value Table Name',
+          'Receivers',
+          'GenSigStartValue',
+          'GenSigInactiveValue',
+          'GenSigTimeoutValue',
+          'Comment',
         ],
-        ['M', 'Speed', '', '', '', '0', '16', '1', '+', '0.1', '0', '0', '6553.5', 'rpm', '', 'BCM', '0', '0', '0', ''],
+        [
+          'M',
+          'Speed',
+          '',
+          '',
+          '',
+          '0',
+          '16',
+          '1',
+          '+',
+          '0.1',
+          '0',
+          '0',
+          '6553.5',
+          'rpm',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
       ],
     });
     const net = await parseExcelAsync(buf);
@@ -123,21 +170,104 @@ describe('excel reader — Signals sheet', () => {
 
   it('reads muxed signals (Multiplexor + Muxed)', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', ''], ['BCM', '1', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+        ['BCM', '1', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
         ['M', '0x100', '8', 'ECM'],
       ],
       Signal: [
         [
-          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
-          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
-          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
-          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+          'Message Name',
+          'Signal Name',
+          'Multiplex',
+          'Mux Value',
+          'Mux Extended',
+          'Start Bit',
+          'Signal Length',
+          'Byte Order',
+          'Value Type',
+          'Factor',
+          'Offset',
+          'Minimum',
+          'Maximum',
+          'Unit',
+          'Value Table Name',
+          'Receivers',
+          'GenSigStartValue',
+          'GenSigInactiveValue',
+          'GenSigTimeoutValue',
+          'Comment',
         ],
-        ['M', 'Mux', 'Multiplexor', '', '', '0', '8', '1', '+', '1', '0', '0', '255', '', '', 'BCM', '0', '0', '0', ''],
-        ['M', 'Speed', 'Muxed', '0', '0', '8', '16', '1', '+', '0.1', '0', '0', '6553.5', 'rpm', '', 'BCM', '0', '0', '0', ''],
-        ['M', 'Temp', 'Muxed', '1', '0', '24', '8', '1', '+', '1', '-40', '-40', '215', 'degC', '', 'BCM', '0', '0', '0', ''],
+        [
+          'M',
+          'Mux',
+          'Multiplexor',
+          '',
+          '',
+          '0',
+          '8',
+          '1',
+          '+',
+          '1',
+          '0',
+          '0',
+          '255',
+          '',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
+        [
+          'M',
+          'Speed',
+          'Muxed',
+          '0',
+          '0',
+          '8',
+          '16',
+          '1',
+          '+',
+          '0.1',
+          '0',
+          '0',
+          '6553.5',
+          'rpm',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
+        [
+          'M',
+          'Temp',
+          'Muxed',
+          '1',
+          '0',
+          '24',
+          '8',
+          '1',
+          '+',
+          '1',
+          '-40',
+          '-40',
+          '215',
+          'degC',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
       ],
     });
     const net = await parseExcelAsync(buf);
@@ -151,20 +281,82 @@ describe('excel reader — Signals sheet', () => {
 
   it('reads ExtendedMuxed signals when Multiplex=Extended', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', ''], ['BCM', '1', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+        ['BCM', '1', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
         ['M', '0x100', '8', 'ECM'],
       ],
       Signal: [
         [
-          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
-          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
-          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
-          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+          'Message Name',
+          'Signal Name',
+          'Multiplex',
+          'Mux Value',
+          'Mux Extended',
+          'Start Bit',
+          'Signal Length',
+          'Byte Order',
+          'Value Type',
+          'Factor',
+          'Offset',
+          'Minimum',
+          'Maximum',
+          'Unit',
+          'Value Table Name',
+          'Receivers',
+          'GenSigStartValue',
+          'GenSigInactiveValue',
+          'GenSigTimeoutValue',
+          'Comment',
         ],
-        ['M', 'Mux', 'Multiplexor', '', '', '0', '8', '1', '+', '1', '0', '0', '255', '', '', 'BCM', '0', '0', '0', ''],
-        ['M', 'Sub1', 'Extended', '3', '1', '8', '16', '1', '+', '1', '0', '0', '1', '', '', 'BCM', '0', '0', '0', ''],
+        [
+          'M',
+          'Mux',
+          'Multiplexor',
+          '',
+          '',
+          '0',
+          '8',
+          '1',
+          '+',
+          '1',
+          '0',
+          '0',
+          '255',
+          '',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
+        [
+          'M',
+          'Sub1',
+          'Extended',
+          '3',
+          '1',
+          '8',
+          '16',
+          '1',
+          '+',
+          '1',
+          '0',
+          '0',
+          '1',
+          '',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
       ],
     });
     const net = await parseExcelAsync(buf);
@@ -198,10 +390,7 @@ describe('excel reader — Value Tables', () => {
 
   it('creates empty ValueTable when entries sheet missing', async () => {
     const buf = await buildBuffer({
-      ValueTable: [
-        ['Value Table Name', 'Comment'],
-        ['Lone'],
-      ],
+      ValueTable: [['Value Table Name', 'Comment'], ['Lone']],
     });
     const net = await parseExcelAsync(buf);
     expect(net.valueTables).toHaveLength(1);
@@ -212,11 +401,18 @@ describe('excel reader — Value Tables', () => {
 describe('excel reader — attribute columns', () => {
   it('wires Cycle Time and Send Type into attributeAssignments', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+      ],
       Message: [
         [
-          'Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter',
-          'Cycle Time [ms]', 'Send Type',
+          'Message Name',
+          'Message ID (hex)',
+          'Message Length',
+          'Transmitter',
+          'Cycle Time [ms]',
+          'Send Type',
         ],
         ['M', '0x100', '8', 'ECM', '100', 'Cyclic'],
       ],
@@ -225,9 +421,7 @@ describe('excel reader — attribute columns', () => {
     // Phase 9.5: the reader also injects a NmStationAddress assignment for
     // the node that has a Node Address. Filter to message-level only so
     // this test stays focused on the message attribute wiring.
-    const msgAssignments = net.attributeAssignments.filter(
-      (a) => a.target.kind === 'message',
-    );
+    const msgAssignments = net.attributeAssignments.filter((a) => a.target.kind === 'message');
     expect(msgAssignments).toHaveLength(2);
     expect(msgAssignments[0]).toEqual({
       name: 'GenMsgCycleTime',
@@ -243,19 +437,24 @@ describe('excel reader — attribute columns', () => {
 
   it('does not create message-level assignments when attribute columns are blank', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+      ],
       Message: [
         [
-          'Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter',
-          'Cycle Time [ms]', 'Send Type',
+          'Message Name',
+          'Message ID (hex)',
+          'Message Length',
+          'Transmitter',
+          'Cycle Time [ms]',
+          'Send Type',
         ],
         ['M', '0x100', '8', 'ECM', '', ''],
       ],
     });
     const net = await parseExcelAsync(buf);
-    const msgAssignments = net.attributeAssignments.filter(
-      (a) => a.target.kind === 'message',
-    );
+    const msgAssignments = net.attributeAssignments.filter((a) => a.target.kind === 'message');
     expect(msgAssignments).toHaveLength(0);
   });
 });
@@ -263,7 +462,10 @@ describe('excel reader — attribute columns', () => {
 describe('excel reader — 29-bit IDs + malformed xlsx', () => {
   it('auto-detects 29-bit extended IDs', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
         ['Ext', '0x18FF1234', '8', 'ECM'],
@@ -276,7 +478,10 @@ describe('excel reader — 29-bit IDs + malformed xlsx', () => {
 
   it('treats 11-bit IDs as non-extended', async () => {
     const buf = await buildBuffer({
-      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Node: [
+        ['Node Name', 'Node Address', 'Comment'],
+        ['ECM', '0', ''],
+      ],
       Message: [
         ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
         ['Std', '0x100', '8', 'ECM'],
@@ -302,23 +507,127 @@ describe('excel reader — full integration', () => {
       ],
       Message: [
         [
-          'Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter',
-          'Cycle Time [ms]', 'Send Type',
+          'Message Name',
+          'Message ID (hex)',
+          'Message Length',
+          'Transmitter',
+          'Cycle Time [ms]',
+          'Send Type',
         ],
         ['EngineStatus', '0x100', '8', 'ECM', '100', 'Cyclic'],
         ['BodyStatus', '0x200', '8', 'BCM', '200', 'Cyclic'],
       ],
       Signal: [
         [
-          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
-          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
-          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
-          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+          'Message Name',
+          'Signal Name',
+          'Multiplex',
+          'Mux Value',
+          'Mux Extended',
+          'Start Bit',
+          'Signal Length',
+          'Byte Order',
+          'Value Type',
+          'Factor',
+          'Offset',
+          'Minimum',
+          'Maximum',
+          'Unit',
+          'Value Table Name',
+          'Receivers',
+          'GenSigStartValue',
+          'GenSigInactiveValue',
+          'GenSigTimeoutValue',
+          'Comment',
         ],
-        ['EngineStatus', 'RPM', '', '', '', '0', '16', '1', '+', '0.1', '0', '0', '6553.5', 'rpm', '', 'BCM', '0', '0', '0', ''],
-        ['EngineStatus', 'Temp', '', '', '', '16', '8', '1', '+', '1', '-40', '-40', '215', 'degC', '', 'BCM', '0', '0', '0', ''],
-        ['BodyStatus', 'DoorLock', 'Multiplexor', '', '', '0', '8', '1', '+', '1', '0', '0', '255', '', '', 'ECM', '0', '0', '0', ''],
-        ['BodyStatus', 'LockState', 'Muxed', '0', '0', '8', '8', '1', '+', '1', '0', '0', '255', '', '', 'ECM', '0', '0', '0', ''],
+        [
+          'EngineStatus',
+          'RPM',
+          '',
+          '',
+          '',
+          '0',
+          '16',
+          '1',
+          '+',
+          '0.1',
+          '0',
+          '0',
+          '6553.5',
+          'rpm',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
+        [
+          'EngineStatus',
+          'Temp',
+          '',
+          '',
+          '',
+          '16',
+          '8',
+          '1',
+          '+',
+          '1',
+          '-40',
+          '-40',
+          '215',
+          'degC',
+          '',
+          'BCM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
+        [
+          'BodyStatus',
+          'DoorLock',
+          'Multiplexor',
+          '',
+          '',
+          '0',
+          '8',
+          '1',
+          '+',
+          '1',
+          '0',
+          '0',
+          '255',
+          '',
+          '',
+          'ECM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
+        [
+          'BodyStatus',
+          'LockState',
+          'Muxed',
+          '0',
+          '0',
+          '8',
+          '8',
+          '1',
+          '+',
+          '1',
+          '0',
+          '0',
+          '255',
+          '',
+          '',
+          'ECM',
+          '0',
+          '0',
+          '0',
+          '',
+        ],
       ],
     });
     const net = await parseExcelAsync(buf);

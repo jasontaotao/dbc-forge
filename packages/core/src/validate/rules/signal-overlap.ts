@@ -7,7 +7,10 @@ import type { ValidationIssue } from '../../errors.js';
 import type { Network } from '../../model/network.js';
 import { muxBucket } from '../../model/signal.js';
 
-function bitsOverlap(a: { startBit: number; length: number }, b: { startBit: number; length: number }): boolean {
+function bitsOverlap(
+  a: { startBit: number; length: number },
+  b: { startBit: number; length: number },
+): boolean {
   return a.startBit < b.startBit + b.length && b.startBit < a.startBit + a.length;
 }
 

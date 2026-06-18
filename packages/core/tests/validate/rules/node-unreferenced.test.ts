@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { createMessage } from '../../../src/model/message.js';
-import {
-  createNetwork,
-  addNode,
-  addMessage,
-} from '../../../src/model/network.js';
+import { createNetwork, addNode, addMessage } from '../../../src/model/network.js';
 import { createNode } from '../../../src/model/node.js';
 import { nodeUnreferenced } from '../../../src/validate/rules/node-unreferenced.js';
 

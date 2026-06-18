@@ -8,7 +8,13 @@ import { ParseError } from '../errors.js';
 import type { AttributeTargetRef, AttrType } from '../model/attributes/attribute.js';
 import { NETWORK_ATTRIBUTES, WELL_KNOWN_TYPES } from '../model/attributes/well-known-attributes.js';
 import { createMessage } from '../model/message.js';
-import { addNode, addMessage, addValueTable, appendValueTableEntry, createNetwork } from '../model/network.js';
+import {
+  addNode,
+  addMessage,
+  addValueTable,
+  appendValueTableEntry,
+  createNetwork,
+} from '../model/network.js';
 import type { Comment, Network } from '../model/network.js';
 import { createSignalGroup } from '../model/signal-group.js';
 import type { Multiplexed, Signal } from '../model/signal.js';
@@ -36,9 +42,13 @@ export function parseDbc(text: string): Network {
       // NS_ block: identifiers can look like keywords (CM_, BA_DEF_, etc.),
       // so we only end the block on a blank line OR a line that looks like
       // a section-starting keyword (DBC_KEYWORDS followed by a space/colon).
-      if (trimmed === '') { inNs = false; continue; }
-      if (looksLikeSectionStart(trimmed)) { inNs = false; }
-      else continue;
+      if (trimmed === '') {
+        inNs = false;
+        continue;
+      }
+      if (looksLikeSectionStart(trimmed)) {
+        inNs = false;
+      } else continue;
     }
     if (inValTable) {
       if (trimmed === '' || !line.trimStart().startsWith('-')) {
@@ -54,7 +64,12 @@ export function parseDbc(text: string): Network {
       currentMessageId = null;
     }
     if (inCm) {
-      if (trimmed === '') { inCm = false; } else { net = parseCmLine(net, trimmed, currentMessageId); continue; }
+      if (trimmed === '') {
+        inCm = false;
+      } else {
+        net = parseCmLine(net, trimmed, currentMessageId);
+        continue;
+      }
     }
     if (trimmed === '') continue;
 
@@ -62,9 +77,15 @@ export function parseDbc(text: string): Network {
       net = { ...net, version: extractQuoted(trimmed, lineNo) };
       continue;
     }
-    if (trimmed === 'NS_ :' || trimmed.startsWith('NS_ :')) { inNs = true; continue; }
+    if (trimmed === 'NS_ :' || trimmed.startsWith('NS_ :')) {
+      inNs = true;
+      continue;
+    }
     if (trimmed === 'BS_:') continue;
-    if (trimmed.startsWith('BU_:')) { net = parseBuLine(net, trimmed); continue; }
+    if (trimmed.startsWith('BU_:')) {
+      net = parseBuLine(net, trimmed);
+      continue;
+    }
     if (trimmed.startsWith('VAL_TABLE_ ')) {
       inValTable = true;
       const name = parseValTableHeader(net, trimmed, lineNo);
@@ -81,19 +102,48 @@ export function parseDbc(text: string): Network {
       continue;
     }
     if (trimmed.startsWith('SG_ ')) {
-      if (currentMessageId == null) throw new ParseError('SG_ without BO_', { line: lineNo, column: 1 });
+      if (currentMessageId == null)
+        throw new ParseError('SG_ without BO_', { line: lineNo, column: 1 });
       net = parseSgLine(net, currentMessageId, trimmed, lineNo);
       continue;
     }
-    if (trimmed.startsWith('BA_DEF_ ')) { net = parseBaDefLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('BA_DEF_DEF_ ')) { net = parseBaDefDefLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('BA_DEF_DEF_REL_ ')) { net = parseBaDefDefRelLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('BA_ ')) { net = parseBaLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('CM_ ')) { inCm = true; net = parseCmLine(net, trimmed, currentMessageId); continue; }
-    if (trimmed.startsWith('VAL_ ')) { net = parseValLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('SIG_GROUP_ ')) { net = parseSigGroupLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('SIG_VALTYPE_ ')) { net = parseSigValtypeLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('BO_TX_BU_ ')) { net = parseBoTxBuLine(net, trimmed, lineNo); continue; }
+    if (trimmed.startsWith('BA_DEF_ ')) {
+      net = parseBaDefLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('BA_DEF_DEF_ ')) {
+      net = parseBaDefDefLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('BA_DEF_DEF_REL_ ')) {
+      net = parseBaDefDefRelLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('BA_ ')) {
+      net = parseBaLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('CM_ ')) {
+      inCm = true;
+      net = parseCmLine(net, trimmed, currentMessageId);
+      continue;
+    }
+    if (trimmed.startsWith('VAL_ ')) {
+      net = parseValLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('SIG_GROUP_ ')) {
+      net = parseSigGroupLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('SIG_VALTYPE_ ')) {
+      net = parseSigValtypeLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('BO_TX_BU_ ')) {
+      net = parseBoTxBuLine(net, trimmed, lineNo);
+      continue;
+    }
     if (trimmed.startsWith('SG_MUL_VAL_ ')) {
       // SG_MUL_VAL_ may appear after the BO_ block has closed (e.g. after
       // CM_/BA_/SIG_GROUP_ in the same DBC). The id in the line is the
@@ -101,8 +151,14 @@ export function parseDbc(text: string): Network {
       net = parseSgMulValLine(net, currentMessageId ?? 0, trimmed, lineNo);
       continue;
     }
-    if (trimmed.startsWith('BA_DEF_REL_ ')) { net = parseBaDefRelLine(net, trimmed, lineNo); continue; }
-    if (trimmed.startsWith('BA_REL_ ')) { net = parseBaRelLine(net, trimmed, lineNo); continue; }
+    if (trimmed.startsWith('BA_DEF_REL_ ')) {
+      net = parseBaDefRelLine(net, trimmed, lineNo);
+      continue;
+    }
+    if (trimmed.startsWith('BA_REL_ ')) {
+      net = parseBaRelLine(net, trimmed, lineNo);
+      continue;
+    }
     if (trimmed.startsWith('EV_ ') || trimmed.startsWith('ENVVAR_DATA_ ')) continue;
     throw new ParseError(`unknown DBC keyword: ${trimmed}`, { line: lineNo, column: 1 });
   }
@@ -185,7 +241,9 @@ function extractQuoted(s: string, line: number): string {
 // match this pattern, so we use it to terminate the NS_ block defensively.
 function looksLikeSectionStart(trimmed: string): boolean {
   // A keyword followed by space, colon, or end-of-line.
-  return /^(VERSION|BS_:|BU_:|BU_ |VAL_TABLE_ |BO_ |SG_ |BA_DEF_ |BA_DEF_DEF_ |BA_DEF_REL_ |BA_DEF_DEF_REL_ |BA_ |BA_REL_ |CM_ |VAL_ |SIG_GROUP_ |SIG_VALTYPE_ |BO_TX_BU_ |SG_MUL_VAL_ |EV_ |ENVVAR_DATA_ )/.test(trimmed);
+  return /^(VERSION|BS_:|BU_:|BU_ |VAL_TABLE_ |BO_ |SG_ |BA_DEF_ |BA_DEF_DEF_ |BA_DEF_REL_ |BA_DEF_DEF_REL_ |BA_ |BA_REL_ |CM_ |VAL_ |SIG_GROUP_ |SIG_VALTYPE_ |BO_TX_BU_ |SG_MUL_VAL_ |EV_ |ENVVAR_DATA_ )/.test(
+    trimmed,
+  );
 }
 
 function appendSignal(net: Network, messageId: number, signal: Signal): Network {
@@ -216,8 +274,14 @@ function parseBuLine(net: Network, trimmed: string): Network {
 }
 
 // Stubs (replaced in tasks 2.3-2.13):
-function parseValTableLine(net: Network, name: string | null, line: string, lineNo: number): Network {
-  if (name == null) throw new ParseError('VAL_TABLE_ continuation without header', { line: lineNo, column: 1 });
+function parseValTableLine(
+  net: Network,
+  name: string | null,
+  line: string,
+  lineNo: number,
+): Network {
+  if (name == null)
+    throw new ParseError('VAL_TABLE_ continuation without header', { line: lineNo, column: 1 });
   // Format: `   - <raw> "<label>" <raw> "<label>" ...`
   const stripped = line.replace(/^\s*-\s*/, '');
   const entries = parseValEntries(stripped, lineNo);
@@ -226,7 +290,11 @@ function parseValTableLine(net: Network, name: string | null, line: string, line
   return n;
 }
 
-function parseValTableHeader(net: Network, line: string, lineNo: number): { net: Network; name: string } {
+function parseValTableHeader(
+  net: Network,
+  line: string,
+  lineNo: number,
+): { net: Network; name: string } {
   // Format: `VAL_TABLE_ <Name> <raw> "<label>" ... ;`
   const m = /^VAL_TABLE_\s+(\S+)\s+(.*?)\s*;\s*$/.exec(line);
   if (!m) throw new ParseError(`malformed VAL_TABLE_: ${line}`, { line: lineNo, column: 1 });
@@ -275,7 +343,10 @@ function parseSgLine(net: Network, messageId: number, line: string, lineNo: numb
   // Format: `SG_ <Name> [M|m<v>|M<v>m<v>] : <start>|<length>@<order><sign> (<factor>,<offset>) [<min>|<max>] "<unit>" <receivers>`
   // The leading whitespace is allowed; we work on the trimmed form.
   const trimmed = line.trim();
-  const m = /^SG_\s+(\S+)(?:\s+(M|m\d+M?|M\d+m\d+))?\s*:\s*(\d+)\|(\d+)@([01])([+-])\s*\(\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*\)\s*\[\s*([-+0-9.eE]+)\s*\|\s*([-+0-9.eE]+)\s*\]\s*"([^"]*)"\s*(.*)$/.exec(trimmed);
+  const m =
+    /^SG_\s+(\S+)(?:\s+(M|m\d+M?|M\d+m\d+))?\s*:\s*(\d+)\|(\d+)@([01])([+-])\s*\(\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*\)\s*\[\s*([-+0-9.eE]+)\s*\|\s*([-+0-9.eE]+)\s*\]\s*"([^"]*)"\s*(.*)$/.exec(
+      trimmed,
+    );
   if (!m) throw new ParseError(`malformed SG_: ${trimmed}`, { line: lineNo, column: 1 });
   const name = m[1];
   const muxStr = m[2];
@@ -289,14 +360,26 @@ function parseSgLine(net: Network, messageId: number, line: string, lineNo: numb
   const maxStr = m[10];
   const unit = m[11];
   const receiversStr = m[12];
-  if (name === undefined || startBitStr === undefined || lengthStr === undefined ||
-      orderChar === undefined || signChar === undefined || factorStr === undefined ||
-      offsetStr === undefined || minStr === undefined || maxStr === undefined ||
-      unit === undefined || receiversStr === undefined) {
+  if (
+    name === undefined ||
+    startBitStr === undefined ||
+    lengthStr === undefined ||
+    orderChar === undefined ||
+    signChar === undefined ||
+    factorStr === undefined ||
+    offsetStr === undefined ||
+    minStr === undefined ||
+    maxStr === undefined ||
+    unit === undefined ||
+    receiversStr === undefined
+  ) {
     throw new ParseError(`malformed SG_: ${trimmed}`, { line: lineNo, column: 1 });
   }
   const multiplexed = parseMuxSpecifier(muxStr);
-  const receivers = receiversStr.trim().split(/[,\s]+/).filter(Boolean);
+  const receivers = receiversStr
+    .trim()
+    .split(/[,\s]+/)
+    .filter(Boolean);
   const signal = createSignal({
     name,
     startBit: Number(startBitStr),
@@ -334,7 +417,10 @@ function parseMuxSpecifier(s: string | undefined): Multiplexed {
 }
 function parseBaDefLine(net: Network, line: string, lineNo: number): Network {
   // Actual Vector format: `BA_DEF_ [BU_|BO_|SG_|EV_]  "<name>" <Type> [<range>] ;`
-  const m = /^BA_DEF_\s+(?:(BU_|BO_|SG_|EV_)\s+)?"([^"]+)"\s+(INT|HEX|FLOAT|STRING|ENUM)\s*(.*?)\s*;\s*$/.exec(line);
+  const m =
+    /^BA_DEF_\s+(?:(BU_|BO_|SG_|EV_)\s+)?"([^"]+)"\s+(INT|HEX|FLOAT|STRING|ENUM)\s*(.*?)\s*;\s*$/.exec(
+      line,
+    );
   if (!m) throw new ParseError(`malformed BA_DEF_: ${line}`, { line: lineNo, column: 1 });
   const targetKw = m[1];
   const name = m[2];
@@ -410,14 +496,23 @@ function parseBaLine(net: Network, line: string, lineNo: number): Network {
   return { ...net, attributeAssignments: [...net.attributeAssignments, { name, target, value }] };
 }
 
-function parseBaTargetRef(name: string, rest: string, line: string, lineNo: number): { target: AttributeTargetRef; value: number | string } {
+function parseBaTargetRef(
+  name: string,
+  rest: string,
+  line: string,
+  lineNo: number,
+): { target: AttributeTargetRef; value: number | string } {
   // BO_ <id> <value>
   const mBo = /^BO_\s+(\d+)\s+(.*)$/.exec(rest);
   if (mBo) {
     const idStr = mBo[1];
     const valStr = mBo[2];
-    if (idStr === undefined || valStr === undefined) throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
-    return { target: { kind: 'message', messageId: Number(idStr) }, value: coerceAttrValue(valStr.trim()) };
+    if (idStr === undefined || valStr === undefined)
+      throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
+    return {
+      target: { kind: 'message', messageId: Number(idStr) },
+      value: coerceAttrValue(valStr.trim()),
+    };
   }
   // SG_ <id> <name> <value>
   const mSg = /^SG_\s+(\d+)\s+(\S+)\s+(.*)$/.exec(rest);
@@ -425,8 +520,12 @@ function parseBaTargetRef(name: string, rest: string, line: string, lineNo: numb
     const idStr = mSg[1];
     const sigName = mSg[2];
     const valStr = mSg[3];
-    if (idStr === undefined || sigName === undefined || valStr === undefined) throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
-    return { target: { kind: 'signal', messageId: Number(idStr), signalName: sigName }, value: coerceAttrValue(valStr.trim()) };
+    if (idStr === undefined || sigName === undefined || valStr === undefined)
+      throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
+    return {
+      target: { kind: 'signal', messageId: Number(idStr), signalName: sigName },
+      value: coerceAttrValue(valStr.trim()),
+    };
   }
   // BU_ <nodeName> <value> — must have at least a value token after the
   // node name. The writer emits a bare `BU_` token for network-level BA_ lines
@@ -436,7 +535,8 @@ function parseBaTargetRef(name: string, rest: string, line: string, lineNo: numb
   if (mBu) {
     const nodeName = mBu[1];
     const valStr = mBu[2];
-    if (nodeName === undefined || valStr === undefined) throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
+    if (nodeName === undefined || valStr === undefined)
+      throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
     return { target: { kind: 'node', nodeName }, value: coerceAttrValue(valStr.trim()) };
   }
   // BU_ with a single value (or `BU_ 0;`): network-level BA_ (DBC spec allows
@@ -444,7 +544,8 @@ function parseBaTargetRef(name: string, rest: string, line: string, lineNo: numb
   const mNet = /^BU_\s+(\S.*)$/.exec(rest);
   if (mNet) {
     const valStr = mNet[1];
-    if (valStr === undefined) throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
+    if (valStr === undefined)
+      throw new ParseError(`malformed BA_: ${line}`, { line: lineNo, column: 1 });
     return { target: { kind: 'network' }, value: coerceAttrValue(valStr.trim()) };
   }
   // Otherwise: bare network-level value (no target ref at all).
@@ -466,7 +567,10 @@ function coerceAttrValue(s: string): number | string {
 
 function parseCmLine(net: Network, line: string, currentMessageId: number | null): Network {
   // Format: CM_ [BU_ <node> | BO_ <id> | SG_ <id> <name> | EV_ <name> | VAL_TABLE_ <name> | <empty>] "<text>" [;]
-  const m = /^CM_\s+(?:(BU_|BO_|SG_|EV_|VAL_TABLE_)\s+([^ ]+?)(?:\s+([^ ]+?))?)?\s*"((?:[^"\\]|\\.)*)"\s*;?\s*$/.exec(line);
+  const m =
+    /^CM_\s+(?:(BU_|BO_|SG_|EV_|VAL_TABLE_)\s+([^ ]+?)(?:\s+([^ ]+?))?)?\s*"((?:[^"\\]|\\.)*)"\s*;?\s*$/.exec(
+      line,
+    );
   if (!m) throw new ParseError(`malformed CM_: ${line}`, { line: 0, column: 1 });
   const kw = m[1];
   const a = m[2];
@@ -480,9 +584,11 @@ function parseCmLine(net: Network, line: string, currentMessageId: number | null
   if (kw === undefined) scope = { kind: 'network' };
   else if (kw === 'BU_' && a !== undefined) scope = { kind: 'node', nodeName: a };
   else if (kw === 'BO_' && a !== undefined) scope = { kind: 'message', messageId: Number(a) };
-  else if (kw === 'SG_' && a !== undefined && b !== undefined) scope = { kind: 'signal', messageId: Number(a), signalName: b };
+  else if (kw === 'SG_' && a !== undefined && b !== undefined)
+    scope = { kind: 'signal', messageId: Number(a), signalName: b };
   else if (kw === 'EV_' && a !== undefined) scope = { kind: 'envVar', envVarName: a };
-  else if (kw === 'VAL_TABLE_' && a !== undefined) scope = { kind: 'valueTable', valueTableName: a };
+  else if (kw === 'VAL_TABLE_' && a !== undefined)
+    scope = { kind: 'valueTable', valueTableName: a };
   else scope = { kind: 'network' };
   void currentMessageId;
   return { ...net, comments: [...net.comments, { scope, text: decoded }] };
@@ -551,7 +657,9 @@ function parseValLine(net: Network, line: string, lineNo: number): Network {
                     multiplexed: s.multiplexed,
                     valueTable: vtName,
                     ...(s.comment !== undefined ? { comment: s.comment } : {}),
-                    ...(s.valueTypeForSignal !== undefined ? { valueTypeForSignal: s.valueTypeForSignal } : {}),
+                    ...(s.valueTypeForSignal !== undefined
+                      ? { valueTypeForSignal: s.valueTypeForSignal }
+                      : {}),
                     ...(s.commentGuards !== undefined ? { commentGuards: s.commentGuards } : {}),
                   })
                 : s,
@@ -652,7 +760,10 @@ function parseBoTxBuLine(net: Network, line: string, lineNo: number): Network {
     throw new ParseError(`malformed BO_TX_BU_: ${line}`, { line: lineNo, column: 1 });
   }
   const messageId = Number(idStr);
-  const additional = list.split(',').map((s) => s.trim()).filter(Boolean);
+  const additional = list
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   return {
     ...net,
     messages: net.messages.map((m2) =>
@@ -692,15 +803,21 @@ function parseSgMulValLine(net: Network, _id: number, line: string, lineNo: numb
   if (idx < 0) return net;
   const orig = net.messages[idx];
   if (!orig) return net;
-  const existing = orig.muxExtensions ? new Map(orig.muxExtensions) : new Map<string, readonly number[]>();
+  const existing = orig.muxExtensions
+    ? new Map(orig.muxExtensions)
+    : new Map<string, readonly number[]>();
   existing.set(sigName, values);
   const updated = createMessage({ ...orig, muxExtensions: existing });
   const newMessages = [...net.messages];
   newMessages[idx] = updated;
   return { ...net, messages: newMessages };
 }
-function parseBaDefRelLine(_n: Network, _l: string, _ln: number): Network { return _n; }
-function parseBaRelLine(_n: Network, _l: string, _ln: number): Network { return _n; }
+function parseBaDefRelLine(_n: Network, _l: string, _ln: number): Network {
+  return _n;
+}
+function parseBaRelLine(_n: Network, _l: string, _ln: number): Network {
+  return _n;
+}
 
 // BA_DEF_DEF_ "<name>" <default-value> ; — sets the default for an existing
 // attribute def. We update the matching AttributeDef in place; if no def
@@ -722,4 +839,6 @@ function parseBaDefDefLine(net: Network, line: string, lineNo: number): Network 
   };
 }
 
-function parseBaDefDefRelLine(_n: Network, _l: string, _ln: number): Network { return _n; }
+function parseBaDefDefRelLine(_n: Network, _l: string, _ln: number): Network {
+  return _n;
+}

@@ -72,7 +72,9 @@ export function createSignal(args: {
     multiplexed: normalizeMultiplexed(args.multiplexed ?? { kind: 'Plain' }),
     ...(args.valueTable !== undefined ? { valueTable: args.valueTable } : {}),
     ...(args.comment !== undefined ? { comment: args.comment } : {}),
-    ...(args.valueTypeForSignal !== undefined ? { valueTypeForSignal: args.valueTypeForSignal } : {}),
+    ...(args.valueTypeForSignal !== undefined
+      ? { valueTypeForSignal: args.valueTypeForSignal }
+      : {}),
     ...(args.commentGuards !== undefined ? { commentGuards: args.commentGuards } : {}),
   };
 }
@@ -90,10 +92,14 @@ export function isMuxed(s: Signal): boolean {
 // uses the extmux: prefix to distinguish from a regular Muxed bucket).
 export function muxBucket(s: Signal): string {
   switch (s.multiplexed.kind) {
-    case 'Plain': return 'plain';
-    case 'Multiplexor': return 'muxor';
-    case 'Muxed': return String(s.multiplexed.value);
-    case 'ExtendedMuxed': return `extmux:${s.multiplexed.value}`;
+    case 'Plain':
+      return 'plain';
+    case 'Multiplexor':
+      return 'muxor';
+    case 'Muxed':
+      return String(s.multiplexed.value);
+    case 'ExtendedMuxed':
+      return `extmux:${s.multiplexed.value}`;
   }
 }
 

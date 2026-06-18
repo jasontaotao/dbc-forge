@@ -18,10 +18,17 @@ describe('diff', () => {
   });
 
   it('detects added/removed messages', () => {
-    const a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
+    const a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+    });
     const b = addMessage(a, { id: 0x200, name: 'X', dlc: 4, transmitter: 'N' });
     const report = diff(a, b);
-    expect(report.changes.some((c) => c.kind === 'message-added' && c.message.id === 0x200)).toBe(true);
+    expect(report.changes.some((c) => c.kind === 'message-added' && c.message.id === 0x200)).toBe(
+      true,
+    );
   });
 
   it('detects signal rename via bit-range match', () => {
@@ -85,7 +92,12 @@ describe('diff', () => {
   });
 
   it('detects attribute value change', () => {
-    let a = addMessage(createNetwork({ version: '1.0' }), { id: 0x100, name: 'M', dlc: 8, transmitter: 'N' });
+    let a = addMessage(createNetwork({ version: '1.0' }), {
+      id: 0x100,
+      name: 'M',
+      dlc: 8,
+      transmitter: 'N',
+    });
     a = addAttributeAssignment(a, {
       name: 'GenMsgCycleTime',
       target: { kind: 'message', messageId: 0x100 },
@@ -100,7 +112,11 @@ describe('diff', () => {
     });
 
     const report = diff(a, b);
-    expect(report.changes.some((c) => c.kind === 'attr-value-changed' && c.before === 100 && c.after === 200)).toBe(true);
+    expect(
+      report.changes.some(
+        (c) => c.kind === 'attr-value-changed' && c.before === 100 && c.after === 200,
+      ),
+    ).toBe(true);
     expect(report.summary.attributesChanged).toBe(1);
   });
 

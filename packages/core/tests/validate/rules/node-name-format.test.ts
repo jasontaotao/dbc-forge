@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  createNetwork,
-  addNode,
-} from '../../../src/model/network.js';
+import { createNetwork, addNode } from '../../../src/model/network.js';
 import { createNode } from '../../../src/model/node.js';
 import { nodeNameFormat } from '../../../src/validate/rules/node-name-format.js';
 

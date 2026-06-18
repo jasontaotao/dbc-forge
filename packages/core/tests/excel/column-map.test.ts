@@ -1,13 +1,32 @@
 import { describe, it, expect } from 'vitest';
 
-import { NODES_SHEET, MESSAGES_SHEET, SIGNALS_SHEET, VALUE_TABLES_SHEET, VALUE_TABLE_ENTRIES_SHEET, getColumnIndex } from '../../src/excel/column-map.js';
+import {
+  NODES_SHEET,
+  MESSAGES_SHEET,
+  SIGNALS_SHEET,
+  VALUE_TABLES_SHEET,
+  VALUE_TABLE_ENTRIES_SHEET,
+  getColumnIndex,
+} from '../../src/excel/column-map.js';
 
 describe('column-map', () => {
   it('NODES_SHEET declares the 3 standard columns', () => {
     expect(NODES_SHEET.name).toBe('Node');
-    expect(NODES_SHEET.columns).toContainEqual({ header: 'Node Name', field: 'name', kind: 'string' });
-    expect(NODES_SHEET.columns).toContainEqual({ header: 'Node Address', field: 'address', kind: 'number' });
-    expect(NODES_SHEET.columns).toContainEqual({ header: 'Comment', field: 'comment', kind: 'string' });
+    expect(NODES_SHEET.columns).toContainEqual({
+      header: 'Node Name',
+      field: 'name',
+      kind: 'string',
+    });
+    expect(NODES_SHEET.columns).toContainEqual({
+      header: 'Node Address',
+      field: 'address',
+      kind: 'number',
+    });
+    expect(NODES_SHEET.columns).toContainEqual({
+      header: 'Comment',
+      field: 'comment',
+      kind: 'string',
+    });
   });
 
   it('MESSAGES_SHEET declares 11 standard columns', () => {

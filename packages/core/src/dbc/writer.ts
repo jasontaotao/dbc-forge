@@ -5,8 +5,12 @@
 // newline is appended for tool friendliness.
 
 import type {
-  AttributeAssignment, AttributeDef, AttributeTargetRef,
-  AttrType, AttrValue, RelationAttributeAssignment,
+  AttributeAssignment,
+  AttributeDef,
+  AttributeTargetRef,
+  AttrType,
+  AttrValue,
+  RelationAttributeAssignment,
 } from '../model/attributes/attribute.js';
 import type { Message } from '../model/message.js';
 import type { Network } from '../model/network.js';
@@ -282,11 +286,16 @@ function attrTargetToPrefix(target: AttributeDef['target']): string {
 
 function attrTypeToString(t: AttrType): string {
   switch (t.kind) {
-    case 'int': return `INT ${t.min} ${t.max}`;
-    case 'hex': return `HEX ${t.min} ${t.max}`;
-    case 'float': return `FLOAT ${t.min} ${t.max}`;
-    case 'string': return 'STRING';
-    case 'enum': return 'ENUM  ' + t.values.map((v) => `"${escapeQuotes(v)}"`).join(',');
+    case 'int':
+      return `INT ${t.min} ${t.max}`;
+    case 'hex':
+      return `HEX ${t.min} ${t.max}`;
+    case 'float':
+      return `FLOAT ${t.min} ${t.max}`;
+    case 'string':
+      return 'STRING';
+    case 'enum':
+      return 'ENUM  ' + t.values.map((v) => `"${escapeQuotes(v)}"`).join(',');
   }
 }
 
@@ -365,18 +374,23 @@ function emitBaRelAssignment(a: RelationAttributeAssignment, net: Network): stri
 
 function emitSigGroup(net: Network): string {
   if (net.signalGroups.length === 0) return '';
-  return net.signalGroups.map((sg) =>
-    `SIG_GROUP_ ${sg.messageId} ${sg.name} ${sg.signalNames.join(' ')} : ${sg.repetitions};`,
-  ).join('\n');
+  return net.signalGroups
+    .map(
+      (sg) =>
+        `SIG_GROUP_ ${sg.messageId} ${sg.name} ${sg.signalNames.join(' ')} : ${sg.repetitions};`,
+    )
+    .join('\n');
 }
 
 function emitCm(net: Network): string {
   if (net.comments.length === 0) return '';
-  return net.comments.map((c) => {
-    const target = emitCmTarget(c.scope);
-    const targetPart = target ? `${target} ` : '';
-    return `CM_ ${targetPart}"${escapeQuotes(c.text)}";`;
-  }).join('\n');
+  return net.comments
+    .map((c) => {
+      const target = emitCmTarget(c.scope);
+      const targetPart = target ? `${target} ` : '';
+      return `CM_ ${targetPart}"${escapeQuotes(c.text)}";`;
+    })
+    .join('\n');
 }
 
 function emitCmTarget(scope: Network['comments'][number]['scope']): string {

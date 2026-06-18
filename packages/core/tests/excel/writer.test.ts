@@ -7,10 +7,7 @@ import { createNetwork, addNode, addMessage } from '../../src/model/network.js';
 import { createSignal } from '../../src/model/signal.js';
 import { createValueTable } from '../../src/model/value-table.js';
 
-async function readSheet(
-  buf: Buffer,
-  sheetName: string,
-): Promise<string[][] | undefined> {
+async function readSheet(buf: Buffer, sheetName: string): Promise<string[][] | undefined> {
   const wb = new Workbook();
   await wb.xlsx.load(buf as unknown as Parameters<typeof wb.xlsx.load>[0]);
   const ws = wb.getWorksheet(sheetName);
@@ -397,7 +394,8 @@ describe('excel round-trip', () => {
 
     // Cycle time round-trips through attributeAssignments
     const ct = net2.attributeAssignments.find(
-      (a) => a.name === 'GenMsgCycleTime' && a.target.kind === 'message' && a.target.messageId === 0x100,
+      (a) =>
+        a.name === 'GenMsgCycleTime' && a.target.kind === 'message' && a.target.messageId === 0x100,
     );
     expect(ct?.value).toBe(100);
   });

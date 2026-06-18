@@ -34,7 +34,23 @@ export function isDbcKeyword(token: string): boolean {
 }
 
 export const DBC_EMIT_ORDER: readonly (keyof typeof DBC_KEYWORDS)[] = [
-  'VERSION', 'NS_', 'BS_', 'BU_', 'VAL_TABLE_', 'BO_', 'BO_TX_BU_', 'SG_',
-  'SIG_VALTYPE_', 'SG_MUL_VAL_', 'VAL_', 'BA_DEF_', 'BA_DEF_REL_',
-  'BA_DEF_DEF_', 'BA_DEF_DEF_REL_', 'BA_', 'BA_REL_', 'SIG_GROUP_', 'CM_',
+  'VERSION',
+  'NS_',
+  'BS_',
+  'BU_',
+  'VAL_TABLE_',
+  'BO_',
+  'BO_TX_BU_',
+  'SG_',
+  'SIG_VALTYPE_',
+  'SG_MUL_VAL_',
+  'VAL_',
+  'BA_DEF_',
+  'BA_DEF_REL_',
+  'BA_DEF_DEF_',
+  'BA_DEF_DEF_REL_',
+  'BA_',
+  'BA_REL_',
+  'SIG_GROUP_',
+  'CM_',
 ];

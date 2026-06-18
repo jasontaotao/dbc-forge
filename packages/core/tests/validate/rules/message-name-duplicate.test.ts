@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { createMessage } from '../../../src/model/message.js';
-import {
-  createNetwork,
-  addMessage,
-} from '../../../src/model/network.js';
+import { createNetwork, addMessage } from '../../../src/model/network.js';
 import { messageNameDuplicate } from '../../../src/validate/rules/message-name-duplicate.js';
 
 describe('message-name-duplicate', () => {

@@ -95,11 +95,14 @@ function pairMessages(a: Network, b: Network): DiffChange[] {
       changes.push({ kind: 'message-removed', message: msgA });
     } else {
       const msgB = bMap.get(id)!;
-      const diffs = diffFields(
-        msgA,
-        msgB,
-        ['name', 'dlc', 'transmitter', 'isExtended', 'additionalTransmitters', 'comment'] as (keyof Message)[],
-      );
+      const diffs = diffFields(msgA, msgB, [
+        'name',
+        'dlc',
+        'transmitter',
+        'isExtended',
+        'additionalTransmitters',
+        'comment',
+      ] as (keyof Message)[]);
       if (diffs.length > 0) {
         changes.push({ kind: 'message-changed', id, fieldDiffs: diffs });
       }
@@ -137,24 +140,20 @@ function pairSignals(a: Network, b: Network): DiffChange[] {
       removed.push(v);
     } else {
       const bSig = bSigs.get(k)!;
-      const diffs = diffFields(
-        v.signal,
-        bSig.signal,
-        [
-          'startBit',
-          'length',
-          'byteOrder',
-          'valueType',
-          'factor',
-          'offset',
-          'min',
-          'max',
-          'unit',
-          'multiplexed',
-          'valueTable',
-          'comment',
-        ] as (keyof Signal)[],
-      );
+      const diffs = diffFields(v.signal, bSig.signal, [
+        'startBit',
+        'length',
+        'byteOrder',
+        'valueType',
+        'factor',
+        'offset',
+        'min',
+        'max',
+        'unit',
+        'multiplexed',
+        'valueTable',
+        'comment',
+      ] as (keyof Signal)[]);
       if (diffs.length > 0) {
         changes.push({
           kind: 'signal-changed',

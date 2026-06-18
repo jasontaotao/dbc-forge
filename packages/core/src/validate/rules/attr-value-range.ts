@@ -5,10 +5,21 @@ import type { ValidationIssue } from '../../errors.js';
 import type { AttributeAssignment, AttributeDef } from '../../model/attributes/attribute.js';
 import type { Network } from '../../model/network.js';
 
-function locationOf(a: AttributeAssignment): { messageId?: number; signalName?: string; nodeName?: string } {
-  if (a.target.kind === 'message' && a.target.messageId !== undefined) return { messageId: a.target.messageId };
-  if (a.target.kind === 'signal' && a.target.messageId !== undefined && a.target.signalName !== undefined) return { messageId: a.target.messageId, signalName: a.target.signalName };
-  if (a.target.kind === 'node' && a.target.nodeName !== undefined) return { nodeName: a.target.nodeName };
+function locationOf(a: AttributeAssignment): {
+  messageId?: number;
+  signalName?: string;
+  nodeName?: string;
+} {
+  if (a.target.kind === 'message' && a.target.messageId !== undefined)
+    return { messageId: a.target.messageId };
+  if (
+    a.target.kind === 'signal' &&
+    a.target.messageId !== undefined &&
+    a.target.signalName !== undefined
+  )
+    return { messageId: a.target.messageId, signalName: a.target.signalName };
+  if (a.target.kind === 'node' && a.target.nodeName !== undefined)
+    return { nodeName: a.target.nodeName };
   return {};
 }
 

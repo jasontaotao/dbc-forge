@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { createMessage } from '../../../src/model/message.js';
-import {
-  createNetwork,
-  addMessage,
-} from '../../../src/model/network.js';
+import { createNetwork, addMessage } from '../../../src/model/network.js';
 import { messageIdRange } from '../../../src/validate/rules/message-id-range.js';
 
 describe('message-id-range', () => {

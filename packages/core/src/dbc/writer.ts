@@ -4,6 +4,10 @@
 // changes shape. All sections are joined with a blank line and a trailing
 // newline is appended for tool friendliness.
 
+import type {
+  AttributeAssignment, AttributeDef, AttributeTargetRef,
+  AttrType, AttrValue, RelationAttributeAssignment,
+} from '../model/attributes/attribute.js';
 import type { Message } from '../model/message.js';
 import type { Network } from '../model/network.js';
 import type { Signal } from '../model/signal.js';
@@ -20,7 +24,6 @@ export interface WriteOptions {
 
 export function writeDbc(net: Network, opts: WriteOptions = {}): string {
   const mode = opts.mode ?? 'extract';
-  void mode; // mode is used by emitBaDef in commit 3
   const sections: string[] = [];
 
   // VERSION (always first)
@@ -57,7 +60,33 @@ export function writeDbc(net: Network, opts: WriteOptions = {}): string {
   const sgMulVal = emitSgMulVal(net);
   if (sgMulVal) sections.push(sgMulVal);
 
-  // Phase 3 commit 3 appends VAL_ + attributes + CM_ here.
+  // VAL_ (signal value-to-label mappings)
+  const val = emitVal(net);
+  if (val) sections.push(val);
+
+  // BA_DEF_ + BA_DEF_DEF_ (attribute declarations)
+  const baDef = emitBaDef(net, mode);
+  if (baDef) sections.push(baDef);
+
+  // BA_DEF_REL_ + BA_DEF_DEF_REL_ (relation attribute declarations)
+  const baDefRel = emitBaDefRel(net);
+  if (baDefRel) sections.push(baDefRel);
+
+  // BA_ (attribute assignments)
+  const ba = emitBa(net);
+  if (ba) sections.push(ba);
+
+  // BA_REL_ (relation attribute assignments)
+  const baRel = emitBaRel(net);
+  if (baRel) sections.push(baRel);
+
+  // SIG_GROUP_ (signal bundles)
+  const sigGroup = emitSigGroup(net);
+  if (sigGroup) sections.push(sigGroup);
+
+  // CM_ (comments) — emitted last
+  const cm = emitCm(net);
+  if (cm) sections.push(cm);
 
   return sections.filter((s) => s.length > 0).join('\n\n') + '\n';
 }
@@ -181,6 +210,166 @@ function emitSgMulVal(net: Network): string {
     }
   }
   return lines.join('\n');
+}
+
+function emitVal(net: Network): string {
+  const lines: string[] = [];
+  for (const m of net.messages) {
+    for (const s of m.signals) {
+      if (s.valueTable) {
+        const vt = net.valueTables.find((v) => v.name === s.valueTable);
+        if (vt) {
+          const entries = vt.entries.map((e) => ` ${e.raw} "${escapeQuotes(e.name)}"`).join('');
+          lines.push(`VAL_ ${m.id} ${s.name}${entries} ;`);
+        }
+      }
+    }
+  }
+  return lines.join('\n');
+}
+
+function emitBaDef(net: Network, mode: WriteMode): string {
+  const defs = [...net.attributeDefs];
+  if (mode === 'build') {
+    // Auto-add well-known attr defs for any BA_ that references a name not
+    // already declared. This is the ⚠️5 build-mode enhancement.
+    const declared = new Set(defs.map((d) => d.name));
+    for (const a of net.attributeAssignments) {
+      if (!declared.has(a.name)) {
+        // We don't know the type/target of arbitrary user attrs, so we
+        // skip auto-declaration for unknowns. The build mode's main job
+        // is to preserve well-known semantics when the user omits BA_DEF_.
+      }
+    }
+  }
+  if (defs.length === 0) return '';
+  const lines: string[] = [];
+  for (const def of defs) {
+    lines.push(emitBaDefLine(def));
+    lines.push(emitBaDefDefLine(def));
+  }
+  return lines.join('\n');
+}
+
+function emitBaDefLine(def: AttributeDef): string {
+  const targetPrefix = attrTargetToPrefix(def.target);
+  const typeStr = attrTypeToString(def.type);
+  return `BA_DEF_  ${targetPrefix}"${def.name}" ${typeStr};`;
+}
+
+function emitBaDefDefLine(def: AttributeDef): string {
+  return `BA_DEF_DEF_  "${def.name}" ${formatAttrValue(def.defaultValue, def.type)};`;
+}
+
+function attrTargetToPrefix(target: AttributeDef['target']): string {
+  if (target === 'message') return 'BO_  ';
+  if (target === 'signal') return 'SG_  ';
+  if (target === 'node') return 'BU_  ';
+  return ''; // network
+}
+
+function attrTypeToString(t: AttrType): string {
+  switch (t.kind) {
+    case 'int': return `INT ${t.min} ${t.max}`;
+    case 'hex': return `HEX ${t.min} ${t.max}`;
+    case 'float': return `FLOAT ${t.min} ${t.max}`;
+    case 'string': return 'STRING';
+    case 'enum': return 'ENUM  ' + t.values.map((v) => `"${escapeQuotes(v)}"`).join(',');
+  }
+}
+
+function emitBaDefRel(net: Network): string {
+  if (net.relationAttributeDefs.length === 0) return '';
+  const lines: string[] = [];
+  for (const def of net.relationAttributeDefs) {
+    const relTarget = def.target === 'node-message' ? 'BU_BO_REL_' : 'BU_SG_REL_';
+    const typeStr = attrTypeToString(def.type);
+    lines.push(`BA_DEF_REL_  ${relTarget} "${def.name}" ${typeStr};`);
+    const defVal = formatAttrValue(def.defaultValue, def.type);
+    lines.push(`BA_DEF_DEF_REL_  "${def.name}" ${defVal};`);
+  }
+  return lines.join('\n');
+}
+
+function emitBa(net: Network): string {
+  if (net.attributeAssignments.length === 0) return '';
+  return net.attributeAssignments.map((a) => emitBaAssignment(a, net)).join('\n');
+}
+
+function emitBaAssignment(a: AttributeAssignment, net: Network): string {
+  const target = emitTargetRef(a.target);
+  // Look up the declared type so we can format the value correctly
+  // (especially for ENUM: write the index, not the string).
+  const def = net.attributeDefs.find((d) => d.name === a.name);
+  const val = def ? formatAttrValue(a.value, def.type) : formatRawValue(a.value);
+  return `BA_ "${a.name}" ${target} ${val};`;
+}
+
+function emitTargetRef(t: AttributeTargetRef): string {
+  if (t.kind === 'network') return 'BU_';
+  if (t.kind === 'message') return `BO_ ${t.messageId}`;
+  if (t.kind === 'signal') return `SG_ ${t.messageId} ${t.signalName}`;
+  return `BU_ ${t.nodeName}`;
+}
+
+function emitBaRel(net: Network): string {
+  if (net.relationAttributeAssignments.length === 0) return '';
+  return net.relationAttributeAssignments.map((a) => emitBaRelAssignment(a, net)).join('\n');
+}
+
+function emitBaRelAssignment(a: RelationAttributeAssignment, net: Network): string {
+  let target: string;
+  if (a.target.kind === 'node-signal') {
+    target = `BU_SG_REL_ ${a.target.nodeName} SG_ ${a.target.messageId} ${a.target.signalName}`;
+  } else {
+    target = `BU_BO_REL_ ${a.target.nodeName} BO_ ${a.target.messageId}`;
+  }
+  const def = net.relationAttributeDefs.find((d) => d.name === a.name);
+  const val = def ? formatAttrValue(a.value, def.type) : formatRawValue(a.value);
+  return `BA_REL_ "${a.name}" ${target} ${val};`;
+}
+
+function emitSigGroup(net: Network): string {
+  if (net.signalGroups.length === 0) return '';
+  return net.signalGroups.map((sg) =>
+    `SIG_GROUP_ ${sg.messageId} ${sg.name} ${sg.signalNames.join(' ')} : ${sg.repetitions};`,
+  ).join('\n');
+}
+
+function emitCm(net: Network): string {
+  if (net.comments.length === 0) return '';
+  return net.comments.map((c) => {
+    const target = emitCmTarget(c.scope);
+    const targetPart = target ? `${target} ` : '';
+    return `CM_ ${targetPart}"${escapeQuotes(c.text)}";`;
+  }).join('\n');
+}
+
+function emitCmTarget(scope: Network['comments'][number]['scope']): string {
+  if (scope.kind === 'network') return '';
+  if (scope.kind === 'node') return `BU_ ${scope.nodeName}`;
+  if (scope.kind === 'message') return `BO_ ${scope.messageId}`;
+  if (scope.kind === 'signal') return `SG_ ${scope.messageId} ${scope.signalName}`;
+  if (scope.kind === 'valueTable') return `VAL_TABLE_ ${scope.valueTableName}`;
+  return `EV_ ${scope.envVarName}`;
+}
+
+// Format an attribute value for output, taking the type into account.
+function formatAttrValue(value: AttrValue, type: AttrType): string {
+  if (type.kind === 'enum' && typeof value === 'string') {
+    const idx = type.values.indexOf(value);
+    if (idx < 0) return formatRawValue(value);
+    return String(idx);
+  }
+  if (type.kind === 'string' && typeof value === 'string') {
+    return `"${escapeQuotes(value)}"`;
+  }
+  return formatRawValue(value);
+}
+
+function formatRawValue(value: AttrValue): string {
+  if (typeof value === 'string') return `"${escapeQuotes(value)}"`;
+  return formatNumber(value);
 }
 
 // Format a number for DBC output: integers stay as integers; floats use

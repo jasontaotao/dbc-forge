@@ -56,3 +56,120 @@ describe('excel reader — Nodes sheet', () => {
     expect(net.nodes[0]?.comment).toBe('Bridges bus');
   });
 });
+
+describe('excel reader — Messages sheet', () => {
+  it('reads Messages sheet into Network.messages', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter', 'Comment'],
+        ['Engine', '0x100', '8', 'ECM', 'Engine status frame'],
+        ['Body', '0x200', '4', 'BCM', ''],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.messages).toHaveLength(2);
+    expect(net.messages[0]?.id).toBe(0x100);
+    expect(net.messages[0]?.name).toBe('Engine');
+    expect(net.messages[0]?.dlc).toBe(8);
+    expect(net.messages[0]?.transmitter).toBe('ECM');
+    expect(net.messages[0]?.comment).toBe('Engine status frame');
+    expect(net.messages[1]?.id).toBe(0x200);
+    expect(net.messages[1]?.dlc).toBe(4);
+    expect(net.messages[1]?.comment).toBeUndefined();
+  });
+
+  it('parses decimal message IDs', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
+        ['M', '256', '8', 'ECM'],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    expect(net.messages[0]?.id).toBe(256);
+  });
+});
+
+describe('excel reader — Signals sheet', () => {
+  it('reads plain signals', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', ''], ['BCM', '1', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
+        ['M', '0x100', '8', 'ECM'],
+      ],
+      Signal: [
+        [
+          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
+          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
+          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
+          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+        ],
+        ['M', 'Speed', '', '', '', '0', '16', '1', '+', '0.1', '0', '0', '6553.5', 'rpm', '', 'BCM', '0', '0', '0', ''],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    const sig = net.messages[0]?.signals[0];
+    expect(sig?.name).toBe('Speed');
+    expect(sig?.startBit).toBe(0);
+    expect(sig?.length).toBe(16);
+    expect(sig?.byteOrder).toBe('little-endian');
+    expect(sig?.valueType).toBe('unsigned');
+    expect(sig?.multiplexed.kind).toBe('Plain');
+    expect(sig?.receivers).toEqual(['BCM']);
+  });
+
+  it('reads muxed signals (Multiplexor + Muxed)', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', ''], ['BCM', '1', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
+        ['M', '0x100', '8', 'ECM'],
+      ],
+      Signal: [
+        [
+          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
+          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
+          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
+          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+        ],
+        ['M', 'Mux', 'Multiplexor', '', '', '0', '8', '1', '+', '1', '0', '0', '255', '', '', 'BCM', '0', '0', '0', ''],
+        ['M', 'Speed', 'Muxed', '0', '0', '8', '16', '1', '+', '0.1', '0', '0', '6553.5', 'rpm', '', 'BCM', '0', '0', '0', ''],
+        ['M', 'Temp', 'Muxed', '1', '0', '24', '8', '1', '+', '1', '-40', '-40', '215', 'degC', '', 'BCM', '0', '0', '0', ''],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    const sigs = net.messages[0]?.signals ?? [];
+    expect(sigs).toHaveLength(3);
+    expect(sigs[0]?.multiplexed.kind).toBe('Multiplexor');
+    expect(sigs[1]?.multiplexed.kind).toBe('Muxed');
+    expect(sigs[1]?.multiplexed).toEqual({ kind: 'Muxed', value: 0 });
+    expect(sigs[2]?.multiplexed).toEqual({ kind: 'Muxed', value: 1 });
+  });
+
+  it('reads ExtendedMuxed signals when Multiplex=Extended', async () => {
+    const buf = await buildBuffer({
+      Node: [['Node Name', 'Node Address', 'Comment'], ['ECM', '0', ''], ['BCM', '1', '']],
+      Message: [
+        ['Message Name', 'Message ID (hex)', 'Message Length', 'Transmitter'],
+        ['M', '0x100', '8', 'ECM'],
+      ],
+      Signal: [
+        [
+          'Message Name', 'Signal Name', 'Multiplex', 'Mux Value', 'Mux Extended',
+          'Start Bit', 'Signal Length', 'Byte Order', 'Value Type', 'Factor',
+          'Offset', 'Minimum', 'Maximum', 'Unit', 'Value Table Name', 'Receivers',
+          'GenSigStartValue', 'GenSigInactiveValue', 'GenSigTimeoutValue', 'Comment',
+        ],
+        ['M', 'Mux', 'Multiplexor', '', '', '0', '8', '1', '+', '1', '0', '0', '255', '', '', 'BCM', '0', '0', '0', ''],
+        ['M', 'Sub1', 'Extended', '3', '1', '8', '16', '1', '+', '1', '0', '0', '1', '', '', 'BCM', '0', '0', '0', ''],
+      ],
+    });
+    const net = await parseExcelAsync(buf);
+    const sigs = net.messages[0]?.signals ?? [];
+    expect(sigs[1]?.multiplexed.kind).toBe('ExtendedMuxed');
+    expect(sigs[1]?.multiplexed).toEqual({ kind: 'ExtendedMuxed', value: 3 });
+  });
+});
